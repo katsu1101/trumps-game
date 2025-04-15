@@ -1,38 +1,118 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ♠️ 7乗べ Webカードゲーム（Next.js × TypeScript）
 
-## Getting Started
+このプロジェクトは、7乗べ風のトランプカードゲームをブラウザ上で楽しめるように構築した Web アプリです。  
+React フレームワークの [Next.js](https://nextjs.org/) と、軽量な状態管理ライブラリ [Zustand](https://github.com/pmndrs/zustand) を用いて実装しています。
 
-First, run the development server:
+---
+
+## 🎮 主な機能
+
+- ♠️ 山札からのカードシャッフル＆配布（プレイヤー + NPC）
+- 🤖 NPCは2〜4人で自由に設定可能
+- 🁏 プレイヤーの手筆は表表示、NPCは裏表示
+- 🧩 カードごとの縦横比・マーク配置・対称表示に対応
+- 🔧 状態管理はZustandで一括管理、再利用性の高い構造
+
+---
+
+## 🧱 使用技術スタック
+
+| 技術            | 説明                                            |
+|---------------|-----------------------------------------------|
+| Next.js       | ReactベースのフルスタックWebフレームワーク                     |
+| TypeScript    | 静的型付けによる信頼性の高い開発                              |
+| Zustand       | `stores/gameStore.ts` にて ゲームの状態やロジックを一元化して管理。 |
+| Tailwind CSS  | スタイリングの高速開発                                   |
+| framer-motion | アニメーション実装（カードの動きなど）                           |
+
+---
+
+## 🚀 今後の予定
+
+- ✅ カードを出す／出せない判定
+- ✅ プレイヤーとNPCのターン制ロジック
+- ⏳ 勝敗条件の自動判定
+- ⏳ プレイヤー間通信（WebSocket対応）
+- ⏳ カードのAI戦略（難易度調整）
+
+---
+
+## 🛠 開発・実行方法
 
 ```bash
+# 依存パッケージをインストール
+npm install
+
+# 開発サーバー起動
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+開発環境は [http://localhost:3000](http://localhost:3000) でアクセスできます。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📁 ディレクトリ構成（抜粋）
 
-## Learn More
+```plaintext
+src/
+├── app/                  # ルート画面 (page.tsx)
+├── components/           # カード、プレイヤー表示などのUI部品
+├── stores/               # Zustandによる状態管理
+├── types/                # 型定義（Cardなど）
+├── utils/                # マーク配置テンプレートなど
+```
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📦 インストールが必要な主なパッケージ
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm install zustand clsx framer-motion
+```
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🧩 状態管理の実装について
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Zustandでは、`useGameStore` というカスタムフックを通じてゲームの状態と操作関数を一元的に扱います。
+このストアは `stores/gameStore.ts` に定義されており、以下の2つの役割を担います：
 
-https://chatgpt.com/c/67f305c8-d6ec-8007-a8c8-e3cf5da397ae
+### 1. 状態（State）
+- `cards`：全カード情報（場所や向きを含む）
+- `npcCount`：NPCの人数（2〜4人）
+- `turn`：現在のターンプレイヤー（今後追加）
+- `phase`：ゲームの進行段階（開始前、進行中、終了 など）
+
+### 2. 処理（Actions）
+- `setNpcCount(count)`：NPC人数を更新
+- `dealCards()`：山札を作成してカードを配布
+- `playCard(cardId)`：カードを場に出す（今後実装）
+- `nextTurn()`：ターンを進める（今後実装）
+- `resetGame()`：初期状態にリセット
+
+### 利用例（コンポーネント側）
+Reactコンポーネントでは以下のようにして状態にアクセス・操作します：
+
+```tsx
+const cards = useGameStore(state => state.cards);
+const dealCards = useGameStore(state => state.dealCards);
+dealCards();
+```
+
+これにより状態とロジックの責務が明確に分離され、
+どのコンポーネントからでも柔軟に状態にアクセスできます。
+
+Zustand は `stores/gameStore.ts` にて状態管理ストアを定義しています。
+このストアでは以下のような情報とロジックを一元管理しています：
+
+- 山札（全カード）と各プレイヤーの手札
+- NPCの人数（2〜4人）とその変動機能
+- ゲーム開始時のシャッフルと配布処理
+- カードの現在位置（deck / player / npcX）と表裏状態（isFaceUp）
+
+UIコンポーネントは `useGameStore` フックを使って状態にアクセスし、表示や操作に反映しています。
+---
+
+## 📄 ライセンス
+
+MIT License
