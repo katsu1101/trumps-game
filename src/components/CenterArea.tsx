@@ -1,24 +1,33 @@
 import Card              from "@/components/Card";
 import {useGameStore}    from "@/stores/gameStore";
-import {Suit}            from "@/types/card";
 import {AnimatePresence} from "framer-motion";
 
 const rankToX = (rank: string): number => {
   switch (rank) {
-    case "A": return 0;
-    case "J": return 10;
-    case "Q": return 11;
-    case "K": return 12;
-    default: return parseInt(rank, 10) - 1;
+    case "A":
+      return 0;
+    case "J":
+      return 10;
+    case "Q":
+      return 11;
+    case "K":
+      return 12;
+    default:
+      return parseInt(rank, 10) - 1;
   }
 }
 const SuitToY = (suit: string): number => {
   switch (suit) {
-    case 'spade': return 0
-    case 'heart': return 1
-    case 'diamond': return 2
-    case 'club': return 3
-    default: return 0
+    case 'spade':
+      return 0
+    case 'heart':
+      return 1
+    case 'diamond':
+      return 2
+    case 'club':
+      return 3
+    default:
+      return 0
   }
 }
 export default function CenterArea() {
@@ -42,7 +51,7 @@ export default function CenterArea() {
               <div
                 key={card.id}
                 className="absolute"
-                style={{top: -index * 0.25, left: -index * 0.1, zIndex: 100+index}}
+                style={{top: -index * 0.25, left: -index * 0.1, zIndex: 100 + index}}
               >
                 <Card card={card}/>
               </div>
@@ -64,18 +73,18 @@ export default function CenterArea() {
           }}
         >
           <AnimatePresence mode="popLayout">
-          {fieldCards.map((card, index) => (
-            <Card
-              key={card.id}
-              card={card}
-              className="absolute"
-              style={{
-                left: `${rankToX(card.rank) * 53}px`,
-                top: `${SuitToY(card.suit) * 74}px`,
-                zIndex: index,
-              }}
-            />
-          ))}
+            {fieldCards.map((card, index) => (
+              <Card
+                key={card.id}
+                card={card}
+                className="absolute"
+                style={{
+                  left: `${rankToX(card.rank) * 53}px`,
+                  top: `${SuitToY(card.suit) * 74}px`,
+                  zIndex: index,
+                }}
+              />
+            ))}
           </AnimatePresence>
         </div>
       </div>
