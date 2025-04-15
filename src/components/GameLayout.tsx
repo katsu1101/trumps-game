@@ -13,7 +13,7 @@ export default function GameLayout() {
         <NPCArea />
       </section>
 
-      <section className="flex-[3]">
+      <section className="flex-[5]">
         <CenterArea />
       </section>
 
