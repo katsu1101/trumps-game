@@ -48,7 +48,7 @@ export default function OverlappedCardRow({cards, label, cardWidth = 80}: Props)
         </div>
       )}
       <div
-        className="relative h-[80px] overflow-hidden"
+        className="relative h-[85px] overflow-hidden"
         style={{
           width: '100%',              // NPC領域いっぱいに広げる
           maxWidth: '100%',           // 親に収まるよう制限
@@ -62,6 +62,7 @@ export default function OverlappedCardRow({cards, label, cardWidth = 80}: Props)
               className="absolute top-0"
               style={{
                 left: `${index * overlapStep}px`,
+                top: card.isPlayable && card.isFaceUp ? '0px' : '12px',  // ✅ 出せるカードは上にずらす
                 zIndex: index,
               }}
             />

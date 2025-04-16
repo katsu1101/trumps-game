@@ -9,15 +9,15 @@ export default function GameLayout() {
   useAutoDeal();
   return (
     <main className="flex flex-col h-screen bg-green-900 text-white">
-      <section className="flex-[1]">
+      <section className="h-[120px]">
         <NPCArea />
       </section>
 
-      <section className="flex-[5]">
+      <section className="h-[320px]">
         <CenterArea />
       </section>
 
-      <section className="flex-[1]">
+      <section className="h-[120px]">
         <PlayerArea />
       </section>
     </main>

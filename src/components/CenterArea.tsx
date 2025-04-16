@@ -39,12 +39,12 @@ export default function CenterArea() {
     <div className="flex justify-between items-center h-full p-2">
       {/* 山札 */}
       <div className="relative flex flex-col items-center gap-1 w-20">
-        <div
-          className="absolute z-50 bg-black/60 top-0 left-0 text-xs text-white px-1"
-          style={{top: -52 * 0.5}}
-        >
-          🃏 山札
-        </div>
+        {/*<div*/}
+        {/*  className="absolute z-50 bg-black/60 top-0 left-0 text-xs text-white px-1"*/}
+        {/*  style={{top: -52 * 0.5}}*/}
+        {/*>*/}
+        {/*  🃏 山札*/}
+        {/*</div>*/}
         <div className="relative w-16 h-24">
           <AnimatePresence mode="popLayout">
             {deckCards.map((card, index) => (
@@ -64,7 +64,7 @@ export default function CenterArea() {
       <div className="flex h-full flex-col items-center gap-1 flex-1">
         {/*<p className="text-sm">🏞️ 場（13×4）</p>*/}
         <div
-          className="relative h-full grid grid-cols-13 gap-[2px] bg-white p-2 rounded overflow-hidden border text-black"
+          className="relative h-full grid grid-cols-13 gap-[2px] p-2 rounded overflow-hidden border text-black"
           style={{
             display: 'grid',
             gridTemplateColumns: `repeat(13, 48px)`,  // カード幅固定
@@ -91,8 +91,8 @@ export default function CenterArea() {
 
       {/* 川 */}
       <div className="flex flex-col items-center gap-1">
-        <p className="text-sm">🌊 川</p>
-        <div className="w-16 h-24 bg-blue-800 rounded border"/>
+        {/*<p className="text-sm">🌊 川</p>*/}
+        {/*<div className="w-16 h-24 bg-blue-800 rounded border"/>*/}
       </div>
     </div>
   );

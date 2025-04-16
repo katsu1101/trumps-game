@@ -45,13 +45,15 @@ export const useAutoDeal = () => {
 
         case 'demo3':
           while (!cancelled) {
+            useGameStore.getState().updatePlayableFlags()
             const remaining = useGameStore.getState().cards.filter(c =>
               c.location === 'player' || c.location.startsWith('npc'));
             if (remaining.length > 0) {
               playNextToField();
-              await delay(300);
+              useGameStore.getState().updatePlayableFlags()
+              await delay(1000);
             } else {
-              await delay(500);
+              await delay(5000);
               useGameStore.setState({ phase: 'demo4' });
               break;
             }
@@ -60,7 +62,7 @@ export const useAutoDeal = () => {
 
         case 'demo4':
           playNextToDeck();
-          await delay(500);
+          await delay(5000);
           useGameStore.setState({ phase: 'demo1' });
           break;
 

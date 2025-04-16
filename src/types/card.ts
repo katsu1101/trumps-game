@@ -9,4 +9,5 @@ export type Card = {
   rank: Rank;
   location: CardLocation;
   isFaceUp: boolean;
+  isPlayable?: boolean; // ✅ 出せるかどうかのフラグ
 };

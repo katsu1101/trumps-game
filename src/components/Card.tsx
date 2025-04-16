@@ -41,6 +41,13 @@ export default function Card({ card, className, style }: Props) {
     >
       {card.isFaceUp ? (
         <>
+          {/* 背景画像（spade Q のときだけ） */}
+          <img
+            src={`/img/${card.suit}_${card.rank}.png`}
+            alt=""
+            className="absolute left-0 right-0 mx-auto h-auto max-h-full object-contain"
+            style={{ top: '50%', transform: 'translateY(-50%)' }}
+          />
           {/* 左上マーク */}
           <div className={`absolute top-1 left-1 leading-none flex flex-col ${color}`}>
             <span

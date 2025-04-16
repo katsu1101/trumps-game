@@ -45,6 +45,52 @@ const assignInitialCards = (shuffledDeck: Card[]) => {
   });
 };
 
+const chooseCardToPlay = (
+  cards: Card[],
+  who: Card['location'],
+  strategy: 'first' | 'random' | 'edge' | 'center' = 'random'
+): Card | undefined => {
+  const playable = cards.filter(c => c.location === who && c.isPlayable);
+  if (playable.length === 0) return undefined;
+
+  switch (strategy) {
+    case 'random':
+      return playable[Math.floor(Math.random() * playable.length)];
+
+    case 'edge': {
+      // A, K に近いほどスコア高
+      const scored = playable.map(card => {
+        const idx = rankToIndex(card.rank);
+        const score = Math.max(idx, rankOrder.length - 1 - idx); // A:12, K:12, 7:6
+        return {card, score};
+      });
+
+      scored.sort((a, b) => b.score - a.score); // 降順（端が上）
+      return scored[0].card;
+    }
+
+    case 'center': {
+      // 7に近いほどスコア低（中心優先）
+      const scored = playable.map(card => {
+        const idx = rankToIndex(card.rank);
+        const score = Math.abs(idx - 6); // 7:0, A/K:6
+        return {card, score};
+      });
+
+      scored.sort((a, b) => a.score - b.score); // 昇順（中心が上）
+      return scored[0].card;
+    }
+
+    default:
+      return playable[0];
+  }
+}
+
+const rankOrder = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+
+const rankToIndex = (rank: string): number => {
+  return rankOrder.indexOf(rank);
+};
 
 type GamePhase = "auto" | 'dealing' | 'ready' | `demo${number}`;
 
@@ -66,6 +112,7 @@ type GameState = {
   startGame: (mode: 'auto' | 'instant' | `demo${number}`) => void;
   playRandomToField: () => void,
   collectFieldToDeck: () => void,
+  updatePlayableFlags: () => void,
 };
 export const useGameStore = create<GameState>((set, get) => ({
   npcCount: 4,
@@ -103,6 +150,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     set({cards});
   },
+
   playRandomToField: () => {
     const cards = [...get().cards];
 
@@ -206,19 +254,20 @@ export const useGameStore = create<GameState>((set, get) => ({
       cards: updatedCards
     }
   }),
+
   playNextToField: () => set(state => {
     const totalPlayers = 1 + state.npcCount;
     const currentIndex = state.turnIndex % totalPlayers;
     const currentLocation = currentIndex === 0 ? 'player' : (`npc${currentIndex - 1}` as const);
-
-    const hand = state.cards.filter(c => c.location === currentLocation);
-    if (hand.length === 0) {
-      return {
-        turnIndex: (state.turnIndex + 1) % totalPlayers
-      };
+    const strategy = currentLocation === 'player' ? 'edge' :
+      currentLocation === 'npc1' ? 'random' :
+        currentLocation === 'npc2' ?  'center' :
+          currentLocation === 'npc3' ?  'first' : 'first'
+    const cardToPlay = chooseCardToPlay(state.cards, currentLocation, strategy);
+    if (!cardToPlay) {
+      return { turnIndex: (state.turnIndex + 1) % totalPlayers };
     }
 
-    const cardToPlay = hand[0];
     const updatedCards: Card[] = state.cards.map(c =>
       c.id === cardToPlay.id ? { ...c, location: 'field', isFaceUp: true } : c
     );
@@ -238,5 +287,55 @@ export const useGameStore = create<GameState>((set, get) => ({
       cards: updatedCards,
     }
   }),
+
+  updatePlayableFlags: () => {
+    const cards = get().cards;
+
+    const fieldBySuit = new Map<string, number[]>();
+
+    // フィールドカードをスート別に分類
+    cards.forEach(c => {
+      if (c.location === 'field') {
+        const idx = rankToIndex(c.rank);
+        const existing = fieldBySuit.get(c.suit) || [];
+        fieldBySuit.set(c.suit, [...existing, idx]);
+      }
+    });
+
+    const updated = cards.map(c => {
+      if (c.location !== 'player' && !c.location.startsWith('npc')) {
+        return { ...c, isPlayable: false };
+      }
+
+      const idx = rankToIndex(c.rank);
+      const placed = fieldBySuit.get(c.suit) || [];
+
+      // 7が場にないなら何も出せない
+      if (!placed.includes(6)) return { ...c, isPlayable: c.rank === '7' };
+
+      // ソートして連続判定
+      const sorted = placed.slice().sort((a, b) => a - b);
+
+      let canPlay = false;
+
+      // 上方向（7→8→9...）の連続確認
+      let up = 6;
+      while (sorted.includes(up)) up++;
+      if (up < rankOrder.length && up === idx) {
+        canPlay = true;
+      }
+
+      // 下方向（7→6→5...）の連続確認
+      let down = 6;
+      while (sorted.includes(down)) down--;
+      if (down >= 0 && down === idx) {
+        canPlay = true;
+      }
+
+      return { ...c, isPlayable: canPlay };
+    });
+
+    set({ cards: updated });
+  }
 
 }));
