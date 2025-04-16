@@ -2,15 +2,22 @@
   "name": "trumps-game",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://katsu1101.github.io/trumps-game",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/katsu1101/trumps-game.git"
+  },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "dotenv -e .env.production -- next build && type nul > out\\.nojekyll",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "deploy": "npm run build && gh-pages -d out --dotfiles"
   },
   "dependencies": {
     "clsx": "^2.1.1",
     "framer-motion": "^12.6.3",
+    "gh-pages": "^6.3.0",
     "next": "15.2.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -23,6 +30,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.21",
+    "cross-env": "^7.0.3",
+    "dotenv-cli": "^8.0.0",
     "eslint": "^9",
     "eslint-config-next": "15.2.4",
     "postcss": "^8.5.3",
