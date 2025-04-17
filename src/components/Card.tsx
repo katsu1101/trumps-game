@@ -1,11 +1,11 @@
 'use client';
 
-import {CSSProperties} from "react";
-import { motion } from 'framer-motion';
-import { clsx } from 'clsx';
-
-import { Card as CardType } from '@/types/card';
-import { suitLayouts } from '@/utils/suitLayouts';
+import {Card as CardType} from '@/types/card';
+import {suitLayouts}      from '@/utils/suitLayouts';
+import {clsx}             from 'clsx';
+import {motion}           from 'framer-motion';
+import Image              from 'next/image';
+import {CSSProperties}    from "react";
 
 type Props = {
   card: CardType;
@@ -13,7 +13,7 @@ type Props = {
   style?: CSSProperties;
 };
 
-export default function Card({ card, className, style }: Props) {
+export default function Card({card, className, style}: Props) {
   const suitMap = {
     spade: '♠',
     heart: '♥',
@@ -31,59 +31,65 @@ export default function Card({ card, className, style }: Props) {
     <motion.div
       layout
       layoutId={card.id}
-      className={
-        clsx(
-          "w-12 h-[72px] border rounded bg-white shadow-sm",
-          className
-        )
-      }
+      className={clsx(
+        "bg-white border rounded shadow-sm",
+        "w-[15vw] aspect-[0.7] min-w-[30px] max-w-[50px]",
+        "flex-shrink-0",
+        className
+      )}
       style={style}
     >
       {card.isFaceUp ? (
         <>
-          {/* 背景画像（spade Q のときだけ） */}
-          {(card.suit === 'diamond' || card.suit === 'heart') &&
-            (card.rank === 'A' || card.rank === 'J' || card.rank === 'Q' || card.rank === 'K') && <img
-
-            src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/img/${card.suit}_${card.rank}.png`}
-            alt=""
-            className="absolute left-0 right-0 mx-auto h-auto max-h-full object-contain"
-            style={{ top: '50%', transform: 'translateY(-50%)' }}
-          />}
+          {/* 背景画像 */}
+          {(card.suit === 'diamond' || card.suit === 'heart')
+            && ['A', 'J', 'Q', 'K'].includes(card.rank) && (
+              <Image
+                src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/img/${card.suit}_${card.rank}.png`}
+                alt=""
+                width={100}
+                height={100}
+                className="absolute left-0 right-0 mx-auto h-auto max-h-full object-contain"
+                style={{top: '50%', transform: 'translateY(-50%)'}}
+              />
+            )}
 
           {/* 左上マーク */}
-          <div className={`absolute top-1 left-1 leading-none flex flex-col ${color}`}>
-            <span
-              className={`font-bold text-[13px] ${
-                card.rank === '10' ? '-translate-x-[5px]' : ''
-              }`}
-            >
-              {card.rank}
-            </span>
-            <span className="text-[12px]">{suitMap[card.suit]}</span>
+          <div className={`absolute top-[5%] left-[5%] leading-none flex flex-col ${color}`}>
+        <span
+          className={clsx(
+            "font-bold text-[0.8em]",
+            card.rank === '10' && '-translate-x-[0.2em]'
+          )}
+        >
+          {card.rank}
+        </span>
+            <span className="text-[0.7em]">{suitMap[card.suit]}</span>
           </div>
 
           {/* 右下・逆さマーク */}
-          <div className={`absolute bottom-1 right-1 leading-none flex flex-col ${color} rotate-180`}>
-            <span
-              className={`font-bold text-[13px] ${
-                card.rank === '10' ? '-translate-x-[5px]' : ''
-              }`}
-            >
-              {card.rank}
-            </span>
-            <span className="text-[12px]">{suitMap[card.suit]}</span>
+          <div className={`absolute bottom-[5%] right-[5%] leading-none flex flex-col ${color} rotate-180`}>
+        <span
+          className={clsx(
+            "font-bold text-[0.8em]",
+            card.rank === '10' && '-translate-x-[0.2em]'
+          )}
+        >
+          {card.rank}
+        </span>
+            <span className="text-[0.7em]">{suitMap[card.suit]}</span>
           </div>
 
-          {/* 中央：2～10のみマークを複数配置 */}
+          {/* 中央マーク（2〜10） */}
           {isNumberCard && suitLayouts[rankNumber] && (
             <div className="absolute inset-0">
               {suitLayouts[rankNumber].map((pos, i) => (
                 <span
                   key={i}
-                  className={
-                    clsx(rankNumber == 1 ? "text-[28px]" : "text-[15px]",
-                      `absolute ${color}`)}
+                  className={clsx(
+                    rankNumber === 1 ? "text-[2em]" : "text-[1.2em]",
+                    `absolute ${color} card-font`
+                  )}
                   style={{
                     top: pos.top,
                     left: pos.left,
@@ -97,7 +103,7 @@ export default function Card({ card, className, style }: Props) {
           )}
         </>
       ) : (
-        <div className="bg-blue-900 w-full h-full rounded" />
+        <div className="bg-blue-900 w-full h-full rounded"/>
       )}
     </motion.div>
   );

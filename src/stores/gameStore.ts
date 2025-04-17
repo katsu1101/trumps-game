@@ -1,9 +1,9 @@
-import {Card, CardLocation, Rank, Suit} from '@/types/card';
-import {create}                         from 'zustand';
+import {Card, CardLocation, rankOrder, rankToIndex, suitOrder, suitToIndex} from '@/types/card';
+import {create}                                                             from 'zustand';
 
 // 定数定義
-const suits: Suit[] = ['spade', 'heart', 'diamond', 'club'];
-const ranks: Rank[] = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+const suits = suitOrder;
+const ranks = rankOrder;
 
 const createDeck = (): Card[] => {
   return suits.flatMap(suit =>
@@ -86,12 +86,6 @@ const chooseCardToPlay = (
   }
 }
 
-const rankOrder = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
-
-const rankToIndex = (rank: string): number => {
-  return rankOrder.indexOf(rank);
-};
-
 type GamePhase = "auto" | 'dealing' | 'ready' | `demo${number}`;
 
 type GameState = {
@@ -114,8 +108,9 @@ type GameState = {
   collectFieldToDeck: () => void,
   updatePlayableFlags: () => void,
 };
+
 export const useGameStore = create<GameState>((set, get) => ({
-  npcCount: 4,
+  npcCount: 3,
   cards: [],
   phase: 'dealing',
   turnIndex: 0,
@@ -227,15 +222,14 @@ export const useGameStore = create<GameState>((set, get) => ({
       assignInitialCards(deck); // 即配布
     }
   },
-  sortPlayerHand: () => set(state => {
-    const order = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 
+  sortPlayerHand: () => set(state => {
     // プレイヤーのカードだけを抽出してソート
     const sortedPlayerCards = state.cards
       .filter(c => c.location === 'player')
       .sort((a, b) => {
-        if (a.suit !== b.suit) return a.suit.localeCompare(b.suit); // スート順
-        return order.indexOf(a.rank) - order.indexOf(b.rank);       // ランク順
+        if (a.suit !== b.suit) return suitToIndex(a.suit) - suitToIndex(b.suit) // スート順
+        return rankToIndex(a.rank) - rankToIndex(b.rank);       // ランク順
       });
 
     // プレイヤー以外のカードはそのまま
@@ -246,9 +240,9 @@ export const useGameStore = create<GameState>((set, get) => ({
     };
   }),
 
-  playNext7ToField: () => set(state =>{
+  playNext7ToField: () => set(state => {
     const updatedCards: Card[] = state.cards.map(c =>
-      c.rank === "7" ? { ...c, location: 'field', isFaceUp: true } : c
+      c.rank === "7" ? {...c, location: 'field', isFaceUp: true} : c
     );
     return {
       cards: updatedCards
@@ -261,18 +255,18 @@ export const useGameStore = create<GameState>((set, get) => ({
     const currentLocation = currentIndex === 0 ? 'player' : (`npc${currentIndex - 1}` as const);
     const strategy = currentLocation === 'player' ? 'edge' :
       currentLocation === 'npc1' ? 'random' :
-        currentLocation === 'npc2' ?  'center' :
-          currentLocation === 'npc3' ?  'first' : 'first'
+        currentLocation === 'npc2' ? 'center' :
+          currentLocation === 'npc3' ? 'first' : 'first'
     const cardToPlay = chooseCardToPlay(state.cards, currentLocation, strategy);
     if (!cardToPlay) {
-      return { turnIndex: (state.turnIndex + 1) % totalPlayers };
+      return {turnIndex: (state.turnIndex + 1) % totalPlayers};
     }
 
     const updatedCards: Card[] = state.cards.map(c =>
-      c.id === cardToPlay.id ? { ...c, location: 'field', isFaceUp: true } : c
+      c.id === cardToPlay.id ? {...c, location: 'field', isFaceUp: true} : c
     );
 
-      return {
+    return {
       cards: updatedCards,
       turnIndex: (state.turnIndex + 1) % totalPlayers
     } as Partial<typeof state>; // ✅ ここがポイント
@@ -304,14 +298,14 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     const updated = cards.map(c => {
       if (c.location !== 'player' && !c.location.startsWith('npc')) {
-        return { ...c, isPlayable: false };
+        return {...c, isPlayable: false};
       }
 
       const idx = rankToIndex(c.rank);
       const placed = fieldBySuit.get(c.suit) || [];
 
       // 7が場にないなら何も出せない
-      if (!placed.includes(6)) return { ...c, isPlayable: c.rank === '7' };
+      if (!placed.includes(6)) return {...c, isPlayable: c.rank === '7'};
 
       // ソートして連続判定
       const sorted = placed.slice().sort((a, b) => a - b);
@@ -331,11 +325,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (down >= 0 && down === idx) {
         canPlay = true;
       }
-
-      return { ...c, isPlayable: canPlay };
+      return {...c, isPlayable: canPlay};
     });
-
-    set({ cards: updated });
+    set({cards: updated});
   }
-
 }));

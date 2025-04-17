@@ -1,8 +1,8 @@
 'use client';
 
-import { useGameStore } from '@/stores/gameStore';
-import Card from './Card';
-import { AnimatePresence } from 'framer-motion';
+import {useGameStore}    from '@/stores/gameStore';
+import {AnimatePresence} from 'framer-motion';
+import Card              from './Card';
 
 export default function GameDemo() {
   const cards = useGameStore(state => state.cards);
@@ -20,7 +20,7 @@ export default function GameDemo() {
         <p>山札</p>
         <div className="h-[70px]">
           <AnimatePresence mode="popLayout">
-            {deckCard && <Card card={deckCard} />}
+            {deckCard && <Card card={deckCard}/>}
           </AnimatePresence>
         </div>
       </div>
@@ -39,7 +39,7 @@ export default function GameDemo() {
         <div className="flex gap-2 min-h-[70px]">
           <AnimatePresence mode="popLayout">
             {playerCards.map(card => (
-              <Card key={card.id} card={card} />
+              <Card key={card.id} card={card}/>
             ))}
           </AnimatePresence>
         </div>

@@ -1,7 +1,7 @@
-import { Card, Suit, Rank } from '@/types/card';
+import {Card, rankOrder, suitOrder} from '@/types/card';
 
-const suits: Suit[] = ['spade', 'heart', 'diamond', 'club'];
-const ranks: Rank[] = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const suits = suitOrder;
+const ranks = rankOrder;
 
 export const createFullDeck = (): Card[] => {
   return suits.flatMap(suit =>

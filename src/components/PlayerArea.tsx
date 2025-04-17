@@ -13,9 +13,9 @@ export default function PlayerArea() {
 
   return (
     <div className="flex justify-between items-center h-full">
-      <div className="flex flex-col items-center gap-1 w-100" />
-      <OverlappedCardRow cards={playerCards} label="🧑 プレイヤー"/>
-      <div className="flex flex-col items-center gap-1 w-100" />
+      <div className="flex flex-col items-center gap-1 landscape:w-[20vw]"/>
+      <OverlappedCardRow cards={playerCards} label="🧑 プレイヤー" isCompact={false}/>
+      <div className="flex flex-col items-center gap-1 landscape:w-[20vw]"/>
     </div>
   );
 }

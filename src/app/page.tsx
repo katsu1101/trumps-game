@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { useGameStore } from '@/stores/gameStore';
-import GameLayout from '@/components/GameLayout';
+import GameLayout          from '@/components/GameLayout';
+import {useGameStore}      from '@/stores/gameStore';
+import {useEffect, useRef} from 'react';
 
 export default function HomePage() {
   const initialized = useRef(false);
@@ -14,5 +14,5 @@ export default function HomePage() {
     }
   }, []);
 
-  return <GameLayout />;
+  return <GameLayout/>;
 }

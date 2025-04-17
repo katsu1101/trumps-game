@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { useGameStore } from '@/stores/gameStore';
+import {useGameStore} from '@/stores/gameStore';
+import {useEffect}    from 'react';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -19,7 +19,7 @@ export const useAutoDeal = () => {
       switch (phase) {
         case 'dealing':
           await delay(100);
-          useGameStore.setState({ phase: 'demo1' });
+          useGameStore.setState({phase: 'demo1'});
           break;
 
         case 'demo1':
@@ -31,7 +31,7 @@ export const useAutoDeal = () => {
             } else {
               sortPlayerHand();
               await delay(500);
-              useGameStore.setState({ phase: 'demo2' });
+              useGameStore.setState({phase: 'demo2'});
               break;
             }
           }
@@ -40,7 +40,7 @@ export const useAutoDeal = () => {
         case 'demo2':
           playNext7ToField();
           await delay(500);
-          useGameStore.setState({ phase: 'demo3' });
+          useGameStore.setState({phase: 'demo3'});
           break;
 
         case 'demo3':
@@ -54,7 +54,7 @@ export const useAutoDeal = () => {
               await delay(1000);
             } else {
               await delay(5000);
-              useGameStore.setState({ phase: 'demo4' });
+              useGameStore.setState({phase: 'demo4'});
               break;
             }
           }
@@ -63,7 +63,7 @@ export const useAutoDeal = () => {
         case 'demo4':
           playNextToDeck();
           await delay(5000);
-          useGameStore.setState({ phase: 'demo1' });
+          useGameStore.setState({phase: 'demo1'});
           break;
 
         default:
