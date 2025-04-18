@@ -1,131 +1,53 @@
-import {Card, CardLocation, rankOrder, rankToIndex, suitOrder, suitToIndex} from '@/types/card';
-import {create}                                                             from 'zustand';
+import {Card, CardLocation}                  from "@/types/card";
+import {chooseCardToPlay}                    from "@/utils/aiStrategy";
+import {rankOrder, rankToIndex, suitToIndex} from "@/utils/cardUtils";
+import {createDeck}                          from "@/utils/createDeck";
+import {create}                              from 'zustand';
 
-// 定数定義
-const suits = suitOrder;
-const ranks = rankOrder;
+export type GamePhase = 'dealing' | 'placing7s' | 'auto' | 'instant' | `demo${number}`
 
-const createDeck = (): Card[] => {
-  return suits.flatMap(suit =>
-    ranks.map(rank => ({
-      id: `${suit}-${rank}`,
-      suit,
-      rank,
-      location: 'deck',
-      isFaceUp: false,
-    }))
-  );
-};
-
-const shuffle = <T>(array: T[]): T[] => {
-  return [...array].sort(() => Math.random() - 0.5); // シンプルなシャッフル
-};
-
-const assignInitialCards = (shuffledDeck: Card[]) => {
-  const {npcCount, setCardLocation} = useGameStore.getState();
-  const totalPlayers = 1 + npcCount;
-
-  // 各プレイヤーの手札用の配列を準備
-  const hands: Card[][] = Array.from({length: totalPlayers}, () => []);
-
-  // 順番にカードを配る
-  shuffledDeck.forEach((card, i) => {
-    const playerIndex = i % totalPlayers;
-    hands[playerIndex].push(card);
-  });
-
-  // 配布先にセット（プレイヤー: 表 / NPC: 裏）
-  hands.forEach((hand, index) => {
-    const location: CardLocation = index === 0 ? 'player' : `npc${index - 1}`;
-    const isFaceUp = index === 0;
-
-    hand.forEach(card => {
-      setCardLocation(card.id, location, isFaceUp);
-    });
-  });
-};
-
-const chooseCardToPlay = (
-  cards: Card[],
-  who: Card['location'],
-  strategy: 'first' | 'random' | 'edge' | 'center' = 'random'
-): Card | undefined => {
-  const playable = cards.filter(c => c.location === who && c.isPlayable);
-  if (playable.length === 0) return undefined;
-
-  switch (strategy) {
-    case 'random':
-      return playable[Math.floor(Math.random() * playable.length)];
-
-    case 'edge': {
-      // A, K に近いほどスコア高
-      const scored = playable.map(card => {
-        const idx = rankToIndex(card.rank);
-        const score = Math.max(idx, rankOrder.length - 1 - idx); // A:12, K:12, 7:6
-        return {card, score};
-      });
-
-      scored.sort((a, b) => b.score - a.score); // 降順（端が上）
-      return scored[0].card;
-    }
-
-    case 'center': {
-      // 7に近いほどスコア低（中心優先）
-      const scored = playable.map(card => {
-        const idx = rankToIndex(card.rank);
-        const score = Math.abs(idx - 6); // 7:0, A/K:6
-        return {card, score};
-      });
-
-      scored.sort((a, b) => a.score - b.score); // 昇順（中心が上）
-      return scored[0].card;
-    }
-
-    default:
-      return playable[0];
-  }
-}
-
-type GamePhase = "auto" | 'dealing' | 'ready' | `demo${number}`;
-
-type GameState = {
-  phase: GamePhase;
+export const useGameStore = create<{
   npcCount: number;
+  phase: GamePhase;
+  currentTurnIndex: number;
   cards: Card[];
-  turnIndex: number, // player = 0, npc1 = 1, npc2 = 2...
 
-  setNpcCount: (count: number) => void;
-  setCardLocation: (id: string, location: Card['location'], faceUp?: boolean) => void;
+  // --- Phase control ---
+  startGame: (mode: 'auto' | 'instant' | `demo${number}`) => void;
+
+  // --- Card actions ---
   dealCards: () => void;
   dealNextCard: () => void;
-  sortPlayerHand: () => void,
-  playNext7ToField: () => void,
-  playNextToField: () => void,
-  playNextToDeck: () => void,
   drawCard: () => void;
-  startGame: (mode: 'auto' | 'instant' | `demo${number}`) => void;
-  playRandomToField: () => void,
-  collectFieldToDeck: () => void,
-  updatePlayableFlags: () => void,
-};
 
-export const useGameStore = create<GameState>((set, get) => ({
+  // --- Turn actions ---
+  playNextToField: () => void;
+  playNext7ToField: () => void;
+  playNextToDeck: () => void;
+
+  // --- Hand management ---
+  sortPlayerHand: () => void;
+  updatePlayableFlags: () => void;
+}>((set, get) => ({
   npcCount: 3,
-  cards: [],
   phase: 'dealing',
-  turnIndex: 0,
+  cards: [],
+  currentTurnIndex: 0,
 
-  setNpcCount: (count) => {
-    if (count >= 2 && count <= 4) set({npcCount: count});
+  // ゲームの開始処理
+  startGame: () => { // mode: 'auto' | 'instant' | `demo${number}`
+    const deck = createDeck().sort(() => Math.random() - 0.5);
+
+    // 基本状態初期化
+    set({
+      cards: deck,
+      phase: 'auto',
+      currentTurnIndex: 0,
+    });
   },
 
-  setCardLocation: (id, location, faceUp = false) =>
-    set(state => ({
-      cards: state.cards.map(card =>
-        card.id === id ? {...card, location, isFaceUp: faceUp} : card
-      )
-    })),
 
+  // --- Card actions ---
   dealCards: () => {
     const npcCount = get().npcCount;
     const totalPlayers = 1 + npcCount;
@@ -146,58 +68,22 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({cards});
   },
 
-  playRandomToField: () => {
-    const cards = [...get().cards];
-
-    // 場に出せるカード（まだ手札にあるもの）
-    const handCards = cards.filter(c => c.location.startsWith('npc') || c.location === 'player');
-
-    if (handCards.length === 0) return;
-
-    const randomIndex = Math.floor(Math.random() * handCards.length);
-    const selectedCard = handCards[randomIndex];
-
-    const field: CardLocation = "field"
-    // location を 'field' に変更
-    const updatedCards = cards.map(card =>
-      card === selectedCard ? {...card, location: field, isFaceUp: true} : card
-    );
-
-    set({cards: updatedCards});
-  },
-
-  collectFieldToDeck: () => {
-    const cards = get().cards;
-
-    const deck: CardLocation = "deck"
-    const updatedCards = cards.map(card =>
-      card.location === 'field'
-        ? {...card, location: deck, isFaceUp: false}
-        : card
-    );
-
-    set({cards: updatedCards});
-  },
-
   dealNextCard: () => {
-    const state = get();
-    const {cards, npcCount} = state;
+    const {cards, npcCount} = get();
     const totalPlayers = 1 + npcCount;
     const nextCard = cards.findLast(c => c.location === 'deck');
     if (!nextCard) return;
 
     const alreadyDealt = cards.length - cards.filter(c => c.location === 'deck').length;
     const currentIndex = alreadyDealt % totalPlayers;
-    const location = currentIndex === 0 ? 'player' : `npc${currentIndex - 1}` as const;
+    const location: CardLocation = currentIndex === 0 ? 'player' : `npc${currentIndex - 1}`;
     const isFaceUp = location === 'player';
 
-    set({
-      cards: cards.map(c =>
-        c.id === nextCard.id
-          ? {...c, location, isFaceUp}
-          : c
-      )
-    });
+    const updatedCards = cards.map(c =>
+      c.id === nextCard.id ? {...c, location, isFaceUp} : c
+    );
+
+    set({cards: updatedCards});
   },
 
   drawCard: () => {
@@ -207,87 +93,93 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     set({
       cards: state.cards.map(c =>
-        c.id === card.id
-          ? {...c, location: 'player', isFaceUp: true}
-          : c
+        c.id === card.id ? {...c, location: 'player', isFaceUp: true} : c
       )
     });
   },
 
-  startGame: (mode) => {
-    const deck = shuffle(createDeck());
-    set({cards: deck, phase: mode === 'auto' ? 'dealing' : 'ready'});
+  // --- Turn actions ---
 
-    if (mode === 'instant') {
-      assignInitialCards(deck); // 即配布
-    }
+  // 最初に7を一斉に出す
+  playNext7ToField: () => {
+    const state = get();
+    const updatedCards = state.cards.map(card =>
+      card.rank === '7' ? {...card, location: 'field' as const, isFaceUp: true} : card
+    );
+    set({cards: updatedCards});
   },
 
-  sortPlayerHand: () => set(state => {
-    // プレイヤーのカードだけを抽出してソート
-    const sortedPlayerCards = state.cards
-      .filter(c => c.location === 'player')
-      .sort((a, b) => {
-        if (a.suit !== b.suit) return suitToIndex(a.suit) - suitToIndex(b.suit) // スート順
-        return rankToIndex(a.rank) - rankToIndex(b.rank);       // ランク順
-      });
-
-    // プレイヤー以外のカードはそのまま
-    const otherCards = state.cards.filter(c => c.location !== 'player');
-
-    return {
-      cards: [...sortedPlayerCards, ...otherCards]
-    };
-  }),
-
-  playNext7ToField: () => set(state => {
-    const updatedCards: Card[] = state.cards.map(c =>
-      c.rank === "7" ? {...c, location: 'field', isFaceUp: true} : c
-    );
-    return {
-      cards: updatedCards
-    }
-  }),
-
-  playNextToField: () => set(state => {
+  // 順番に1枚ずつ手札を場に出す（戦略に応じて）
+  playNextToField: () => {
+    const state = get();
     const totalPlayers = 1 + state.npcCount;
-    const currentIndex = state.turnIndex % totalPlayers;
+    const currentIndex = state.currentTurnIndex % totalPlayers;
     const currentLocation = currentIndex === 0 ? 'player' : (`npc${currentIndex - 1}` as const);
-    const strategy = currentLocation === 'player' ? 'edge' :
-      currentLocation === 'npc1' ? 'random' :
-        currentLocation === 'npc2' ? 'center' :
-          currentLocation === 'npc3' ? 'first' : 'first'
+
+    const strategy = (() => {
+      switch (currentLocation) {
+        case 'player': return 'edge';
+        case 'npc1': return 'random';
+        case 'npc2': return 'center';
+        case 'npc3': return 'first';
+        default: return 'first';
+      }
+    })();
+
     const cardToPlay = chooseCardToPlay(state.cards, currentLocation, strategy);
+
     if (!cardToPlay) {
-      return {turnIndex: (state.turnIndex + 1) % totalPlayers};
+      // 出せない → スキップ
+      set({currentTurnIndex: (state.currentTurnIndex + 1) % totalPlayers});
+      return;
     }
 
     const updatedCards: Card[] = state.cards.map(c =>
       c.id === cardToPlay.id ? {...c, location: 'field', isFaceUp: true} : c
     );
 
-    return {
+    set({
       cards: updatedCards,
-      turnIndex: (state.turnIndex + 1) % totalPlayers
-    } as Partial<typeof state>; // ✅ ここがポイント
-  }),
+      currentTurnIndex: (state.currentTurnIndex + 1) % totalPlayers
+    });
+  },
 
-  playNextToDeck: () => set(state => {
-    const updatedCards: Card[] = state.cards.map(c => {
-        return {...c, location: 'deck', isFaceUp: false} as Card
-      }
-    );
-    return {
-      cards: updatedCards,
-    }
-  }),
+  // 全カードを場から山札に戻す（デモ終了など）
+  playNextToDeck: () => {
+    const updatedCards: Card[] = get().cards.map(c => {
+      return {...c, location: 'deck', isFaceUp: false};
+    });
+    set({cards: updatedCards});
+  },
 
+
+  // --- Hand management ---
+
+  // プレイヤーの手札をスート → ランク順に並べ替え
+  sortPlayerHand: () => {
+    const state = get();
+
+    const sortedPlayerCards = state.cards
+      .filter(c => c.location === 'player')
+      .sort((a, b) => {
+        if (a.suit !== b.suit) {
+          return suitToIndex(a.suit) - suitToIndex(b.suit);
+        }
+        return rankToIndex(a.rank) - rankToIndex(b.rank);
+      });
+
+    const otherCards = state.cards.filter(c => c.location !== 'player');
+
+    set({cards: [...sortedPlayerCards, ...otherCards]});
+  },
+
+  // 出せるカードかどうかを判定して isPlayable を付与
   updatePlayableFlags: () => {
     const cards = get().cards;
 
     const fieldBySuit = new Map<string, number[]>();
 
-    // フィールドカードをスート別に分類
+    // 場に出ているカードをスート別に分類
     cards.forEach(c => {
       if (c.location === 'field') {
         const idx = rankToIndex(c.rank);
@@ -304,29 +196,30 @@ export const useGameStore = create<GameState>((set, get) => ({
       const idx = rankToIndex(c.rank);
       const placed = fieldBySuit.get(c.suit) || [];
 
-      // 7が場にないなら何も出せない
+      // 7がまだ出ていないなら、7しか出せない
       if (!placed.includes(6)) return {...c, isPlayable: c.rank === '7'};
 
-      // ソートして連続判定
+      // 並び順で判断（連続する隣のカードのみ出せる）
       const sorted = placed.slice().sort((a, b) => a - b);
-
       let canPlay = false;
 
-      // 上方向（7→8→9...）の連続確認
+      // 上方向（例：7→8→9）
       let up = 6;
       while (sorted.includes(up)) up++;
       if (up < rankOrder.length && up === idx) {
         canPlay = true;
       }
 
-      // 下方向（7→6→5...）の連続確認
+      // 下方向（例：7→6→5）
       let down = 6;
       while (sorted.includes(down)) down--;
       if (down >= 0 && down === idx) {
         canPlay = true;
       }
+
       return {...c, isPlayable: canPlay};
     });
+
     set({cards: updated});
   }
 }));

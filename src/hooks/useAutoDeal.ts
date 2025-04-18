@@ -31,16 +31,12 @@ export const useAutoDeal = () => {
             } else {
               sortPlayerHand();
               await delay(500);
-              useGameStore.setState({phase: 'demo2'});
+              playNext7ToField();
+              await delay(500);
+              useGameStore.setState({phase: 'demo3'});
               break;
             }
           }
-          break;
-
-        case 'demo2':
-          playNext7ToField();
-          await delay(500);
-          useGameStore.setState({phase: 'demo3'});
           break;
 
         case 'demo3':
@@ -71,17 +67,10 @@ export const useAutoDeal = () => {
       }
     };
 
-    runner();
+    runner().then(() => {});
 
     return () => {
       cancelled = true;
     };
-  }, [
-    phase,
-    dealNextCard,
-    sortPlayerHand,
-    playNextToField,
-    playNext7ToField,
-    playNextToDeck,
-  ]);
+  }, [phase, dealNextCard, sortPlayerHand, playNextToField, playNext7ToField, playNextToDeck]);
 };
