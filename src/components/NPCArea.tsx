@@ -2,16 +2,29 @@
 
 import {useGameStore}    from '@/stores/gameStore';
 import {useWindowWidth}  from "@/utils/useWindowSize";
+import {useEffect}       from "react";
 import OverlappedCardRow from './OverlappedCardRow';
 
 export default function NPCArea() {
   const cards = useGameStore(state => state.cards);
   const npcCount = useGameStore(state => state.npcCount);
+  const currentTurnIndex = useGameStore(state => state.currentTurnIndex);
+  const lastPassPlayer = useGameStore(state => state.lastPassPlayer);
+  const passCountMap = useGameStore(state => state.passCountMap)
   const width = useWindowWidth();
   const isCompact = width < 640; // 小さい画面と判定
 
+  useEffect(() => {
+    if (!lastPassPlayer) return;
+    const timer = setTimeout(() => {
+      useGameStore.getState().setLastPassPlayer(null);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [lastPassPlayer]);
+
   const npcComponents = Array.from({length: npcCount}, (_, i) => {
     const npcCards = cards.filter(c => c.location === `npc${i}`);
+    const isActive = currentTurnIndex === i + 1;
     return (
       <div
         key={`npc${i}`}
@@ -21,6 +34,10 @@ export default function NPCArea() {
           cards={npcCards}
           label={`NPC ${i + 1}`}
           isCompact={isCompact}
+          isActive={isActive} // ✅ 追加
+          message={lastPassPlayer === `npc${i}` ? 'パスしました' : undefined}
+          passCount={passCountMap[`npc${i}`] ?? 0}
+          passLimit={3}
         />
       </div>
     );

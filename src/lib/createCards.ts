@@ -1,4 +1,5 @@
-import {Card, rankOrder, suitOrder} from '@/types/card';
+import {Card}                 from '@/types/card';
+import {rankOrder, suitOrder} from "@/utils/cardUtils";
 
 const suits = suitOrder;
 const ranks = rankOrder;

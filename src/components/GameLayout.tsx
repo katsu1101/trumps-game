@@ -1,12 +1,14 @@
 'use client';
 
-import {useAutoDeal} from '@/hooks/useAutoDeal';
-import CenterArea    from './CenterArea';
-import NPCArea       from './NPCArea';
-import PlayerArea    from './PlayerArea';
+import DemoNotice     from "@/components/DemoNotice";
+import TitleScreen    from "@/components/TitleScreen";
+import {useAutoDeal}  from '@/hooks/useAutoDeal';
+import {useGameStore} from "@/stores/gameStore";
+import CenterArea     from './CenterArea';
+import NPCArea        from './NPCArea';
+import PlayerArea     from './PlayerArea';
 
-export default function GameLayout() {
-  useAutoDeal();
+function MainGame() {
   return (
     <main className="flex-col h-screen bg-green-900 text-white">
       <section
@@ -23,6 +25,18 @@ export default function GameLayout() {
         className="landscape:h-[21vh] portrait:h-[15vh]">
         <PlayerArea/>
       </section>
+
+      {/* デモ中の案内 */}
+      <DemoNotice/>
     </main>
   );
+}
+
+export default function GameLayout() {
+  const phase = useGameStore(state => state.phase);
+  useAutoDeal();
+
+  if (phase === 'title') return <TitleScreen/>;
+  return <MainGame/>;
+
 }

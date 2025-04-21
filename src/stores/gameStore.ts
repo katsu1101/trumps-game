@@ -4,16 +4,28 @@ import {rankOrder, rankToIndex, suitToIndex} from "@/utils/cardUtils";
 import {createDeck}                          from "@/utils/createDeck";
 import {create}                              from 'zustand';
 
-export type GamePhase = 'dealing' | 'placing7s' | 'auto' | 'instant' | `demo${number}`
+export type GamePhase = 'title' | 'demo' | 'playing'
+export type GamePhaseSub =
+  null
+  | 'dealing'
+  | 'sortPlayerHand'
+  | 'autoPlace7s'
+  | 'turnLoop'
+  | 'result'
+  | 'playNextToDeck';
 
 export const useGameStore = create<{
   npcCount: number;
   phase: GamePhase;
+  phaseSub: GamePhaseSub;
   currentTurnIndex: number;
   cards: Card[];
+  lastPassPlayer: string | null;
+  passCountMap: Record<string, number>; // 'player', 'npc0' など
 
   // --- Phase control ---
   startGame: (mode: 'auto' | 'instant' | `demo${number}`) => void;
+  setPhase: (phase: GamePhase, sub?: GamePhaseSub) => void;
 
   // --- Card actions ---
   dealCards: () => void;
@@ -21,29 +33,51 @@ export const useGameStore = create<{
   drawCard: () => void;
 
   // --- Turn actions ---
-  playNextToField: () => void;
+  playNextToField: (isDemo: boolean) => void;
+  nextTurnLoop: () => void;
   playNext7ToField: () => void;
   playNextToDeck: () => void;
 
   // --- Hand management ---
   sortPlayerHand: () => void;
   updatePlayableFlags: () => void;
+
+  setLastPassPlayer: (who: string | null) => void;
+  resetPassCounts: () => void;
 }>((set, get) => ({
   npcCount: 3,
-  phase: 'dealing',
+  phase: 'title',
+  phaseSub: null,
   cards: [],
   currentTurnIndex: 0,
+  passCountMap: {'player': 0},
+
+  // パス
+  lastPassPlayer: null as string | null, // 例: 'player' or 'npc1' etc.
+  setLastPassPlayer: (who: string | null) => set({lastPassPlayer: who}),
+  resetPassCounts: () => {
+    set({passCountMap: {'player': 0}});
+  },
 
   // ゲームの開始処理
   startGame: () => { // mode: 'auto' | 'instant' | `demo${number}`
+    const {npcCount, passCountMap} = get();
     const deck = createDeck().sort(() => Math.random() - 0.5);
 
+    for (let i = 1; i <= npcCount; i++) {
+      passCountMap[`npc${i}`] = 0;
+    }
     // 基本状態初期化
     set({
       cards: deck,
-      phase: 'auto',
+      phase: 'title',
       currentTurnIndex: 0,
+      passCountMap: passCountMap,
     });
+  },
+
+  setPhase: (phase: GamePhase, sub?: GamePhaseSub) => {
+    set({phase, phaseSub: sub});
   },
 
 
@@ -110,27 +144,58 @@ export const useGameStore = create<{
   },
 
   // 順番に1枚ずつ手札を場に出す（戦略に応じて）
-  playNextToField: () => {
+  playNextToField: (isDemo) => {
     const state = get();
     const totalPlayers = 1 + state.npcCount;
     const currentIndex = state.currentTurnIndex % totalPlayers;
     const currentLocation = currentIndex === 0 ? 'player' : (`npc${currentIndex - 1}` as const);
-
+    if (!isDemo && currentIndex === 0) {
+      return;
+    }
     const strategy = (() => {
       switch (currentLocation) {
-        case 'player': return 'edge';
-        case 'npc1': return 'random';
-        case 'npc2': return 'center';
-        case 'npc3': return 'first';
-        default: return 'first';
+        case 'player':
+          return 'edge';
+        case 'npc1':
+          return 'random';
+        case 'npc2':
+          return 'center';
+        case 'npc3':
+          return 'first';
+        default:
+          return 'first';
       }
     })();
+
+    const myCards: Card[] = state.cards.filter(c => c.location === currentLocation);
+    if (myCards.length === 0) return; // すでにあがったプレイヤー
 
     const cardToPlay = chooseCardToPlay(state.cards, currentLocation, strategy);
 
     if (!cardToPlay) {
       // 出せない → スキップ
-      set({currentTurnIndex: (state.currentTurnIndex + 1) % totalPlayers});
+      const prevCount = state.passCountMap[currentLocation] || 0;
+      if (prevCount >= 3) {
+        // TODO パス上限超えたらもう何もしない
+        // state.giveUp(currentLocation)
+        const revealed: Card[] = state.cards.map(c =>
+          c.location === currentLocation
+            ? {...c, location: 'field', isFaceUp: true}
+            : c
+        );
+        set({
+          cards: revealed,
+          passCountMap: {...state.passCountMap, [currentLocation]: prevCount + 1}
+        });
+        return;
+      }
+
+      // パス扱いでカウント加算（メッセージ表示のフラグ追加もここ）
+      set(state => ({
+        passCountMap: {...state.passCountMap, [currentLocation]: prevCount + 1}
+      }));
+
+      state.setLastPassPlayer(currentLocation);
       return;
     }
 
@@ -140,9 +205,31 @@ export const useGameStore = create<{
 
     set({
       cards: updatedCards,
-      currentTurnIndex: (state.currentTurnIndex + 1) % totalPlayers
     });
   },
+
+  nextTurnLoop: () => {
+    const state = get();
+    const totalPlayers = 1 + state.npcCount;
+    let nextIndex = (state.currentTurnIndex + 1) % totalPlayers;
+
+    for (let i = 0; i < totalPlayers; i++) {
+      const nextLocation = nextIndex === 0 ? 'player' : `npc${nextIndex - 1}` as const;
+      const hasHand = state.cards.some(
+        c => c.location === nextLocation
+      );
+      if (hasHand) {
+        set({currentTurnIndex: nextIndex});
+        return;
+      }
+      nextIndex = (nextIndex + 1) % totalPlayers;
+    }
+
+    // ここまで来る＝全員あがってる → 終了フラグを立てるなど
+    console.warn('全員が手札なし（あがり）');
+    set({phaseSub: 'result'});
+  },
+
 
   // 全カードを場から山札に戻す（デモ終了など）
   playNextToDeck: () => {

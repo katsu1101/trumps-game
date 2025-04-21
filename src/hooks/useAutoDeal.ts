@@ -10,67 +10,90 @@ export const useAutoDeal = () => {
   const playNext7ToField = useGameStore(state => state.playNext7ToField);
   const playNextToDeck = useGameStore(state => state.playNextToDeck);
   const phase = useGameStore(state => state.phase);
+  const phaseSub = useGameStore(state => state.phaseSub);
+  const setPhase = useGameStore(state => state.setPhase);
 
   useEffect(() => {
     let cancelled = false;
 
+
     const runner = async () => {
-      console.log("phase", phase)
-      switch (phase) {
-        case 'dealing':
-          await delay(100);
-          useGameStore.setState({phase: 'demo1'});
+      console.log("phaseSub", phaseSub)
+
+      switch (phaseSub) {
+        case null:
           break;
 
-        case 'demo1':
+        case 'dealing':
           while (!cancelled) {
             const remaining = useGameStore.getState().cards.filter(c => c.location === 'deck').length;
             if (remaining > 0) {
               dealNextCard();
               await delay(100);
             } else {
-              sortPlayerHand();
-              await delay(500);
-              playNext7ToField();
-              await delay(500);
-              useGameStore.setState({phase: 'demo3'});
+              useGameStore.setState({phaseSub: 'sortPlayerHand'});
               break;
             }
           }
           break;
 
-        case 'demo3':
+        case 'sortPlayerHand':
+          sortPlayerHand();
+          await delay(500);
+          useGameStore.setState({phaseSub: 'autoPlace7s'});
+          break;
+
+        case 'autoPlace7s':
+          playNext7ToField();
+          await delay(500);
+          useGameStore.setState({phaseSub: 'turnLoop'});
+          break;
+
+        case 'turnLoop':
           while (!cancelled) {
             useGameStore.getState().updatePlayableFlags()
             const remaining = useGameStore.getState().cards.filter(c =>
               c.location === 'player' || c.location.startsWith('npc'));
             if (remaining.length > 0) {
-              playNextToField();
+              // if (phase === 'playing' && currentTurnIndex == 0) {
+              //   // TODO ユーザのアクション待ち
+              //   await delay(1000);
+              //   break
+              // }
+              await delay(500);
               useGameStore.getState().updatePlayableFlags()
-              await delay(1000);
+              playNextToField(phase === 'demo');
+
+              await delay(500); // アニメーションの時間を確保してから
+              useGameStore.getState().nextTurnLoop();
             } else {
               await delay(5000);
-              useGameStore.setState({phase: 'demo4'});
+              useGameStore.setState({phaseSub: 'result'});
               break;
             }
           }
           break;
 
-        case 'demo4':
+        case 'result':
+          // TODO
+          useGameStore.setState({phaseSub: 'playNextToDeck'});
+          break;
+
+        case 'playNextToDeck':
           playNextToDeck();
-          await delay(5000);
-          useGameStore.setState({phase: 'demo1'});
+          setPhase('title', null)
           break;
 
         default:
-          console.log(`phase: ${phase}`);
+          console.log(`phaseSub: ${phaseSub}`);
       }
     };
 
-    runner().then(() => {});
+    runner().then(() => {
+    });
 
     return () => {
       cancelled = true;
     };
-  }, [phase, dealNextCard, sortPlayerHand, playNextToField, playNext7ToField, playNextToDeck]);
+  }, [phaseSub, dealNextCard, sortPlayerHand, playNextToField, playNext7ToField, playNextToDeck, setPhase, phase]);
 };

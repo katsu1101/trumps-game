@@ -11,9 +11,10 @@ type Props = {
   card: CardType;
   className?: string;
   style?: CSSProperties;
+  animate?: { rotate: number; };
 };
 
-export default function Card({card, className, style}: Props) {
+export default function Card({card, className, style, animate}: Props) {
   const suitMap = {
     spade: '♠',
     heart: '♥',
@@ -38,6 +39,7 @@ export default function Card({card, className, style}: Props) {
         className
       )}
       style={style}
+      animate={animate}
     >
       {card.isFaceUp ? (
         <>
@@ -87,8 +89,10 @@ export default function Card({card, className, style}: Props) {
                 <span
                   key={i}
                   className={clsx(
-                    rankNumber === 1 ? "text-[2em]" : "text-[1.2em]",
-                    `absolute ${color} card-font`
+                    rankNumber === 1 ? "text-[1.8em]" : "text-[1.2em]",
+                    `absolute ${color} card-font`,
+                    "w-4 h-4 rounded-full bg-white/60",
+                    "flex items-center justify-center",
                   )}
                   style={{
                     top: pos.top,
