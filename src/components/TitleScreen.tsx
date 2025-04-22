@@ -27,7 +27,7 @@ export default function TitleScreen() {
         transitioned.current = true;
         playNextToDeck()
         // ✅ パス回数リセット
-        useGameStore.getState().resetPassCounts();
+        useGameStore.getState().startGame();
 
         setPhase('playing', 'dealing');
       }
@@ -37,7 +37,7 @@ export default function TitleScreen() {
       if (!transitioned.current) {
         transitioned.current = true;
         // ✅ パス回数リセット
-        useGameStore.getState().resetPassCounts();
+        useGameStore.getState().startGame();
 
         setPhase('demo', 'dealing');
       }

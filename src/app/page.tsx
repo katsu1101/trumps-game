@@ -9,7 +9,7 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!initialized.current) {
-      useGameStore.getState().startGame('auto'); // 'instant' に変えれば即配布
+      useGameStore.getState().startGame(); // 'instant' に変えれば即配布
       initialized.current = true;
     }
   }, []);

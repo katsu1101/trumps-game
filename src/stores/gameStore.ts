@@ -12,19 +12,27 @@ export type GamePhaseSub =
   | 'autoPlace7s'
   | 'turnLoop'
   | 'result'
-  | 'playNextToDeck';
-
+  | 'playNextToDeck'
+  | 'waitingInput';
+type FinishInfo = {
+  player: CardLocation;
+  rank?: number;           // 勝ち抜け順位（ギブアップ時は無し）
+  reason: 'pass' | 'win' | 'giveUp';
+  timestamp: number; // ここを追加！
+};
 export const useGameStore = create<{
   npcCount: number;
+  PASS_LIMIT: number;
   phase: GamePhase;
   phaseSub: GamePhaseSub;
   currentTurnIndex: number;
   cards: Card[];
-  lastPassPlayer: string | null;
+  lastPassPlayer: { player?: CardLocation, type?: 'win' | 'pass' | 'giveUp', timestamp?: number },
   passCountMap: Record<string, number>; // 'player', 'npc0' など
+  finishedPlayers: FinishInfo[];
 
   // --- Phase control ---
-  startGame: (mode: 'auto' | 'instant' | `demo${number}`) => void;
+  startGame: () => void;
   setPhase: (phase: GamePhase, sub?: GamePhaseSub) => void;
 
   // --- Card actions ---
@@ -33,46 +41,55 @@ export const useGameStore = create<{
   drawCard: () => void;
 
   // --- Turn actions ---
-  playNextToField: (isDemo: boolean) => void;
+  playNextToField: () => void;
   nextTurnLoop: () => void;
   playNext7ToField: () => void;
   playNextToDeck: () => void;
+  playUserCard: (cardId: string) => void;
+  finishPlayer: (
+    playerId: CardLocation,
+    reason: 'giveUp' | 'win'
+  ) => void
+  getRemainingPlayers: () => CardLocation[];
+  handlePass: (playerId: CardLocation) => void;
 
   // --- Hand management ---
   sortPlayerHand: () => void;
   updatePlayableFlags: () => void;
 
-  setLastPassPlayer: (who: string | null) => void;
+  setLastPassPlayer: (player?: CardLocation, reason?: 'win' | 'pass' | 'giveUp') => void;
   resetPassCounts: () => void;
 }>((set, get) => ({
   npcCount: 3,
+  PASS_LIMIT: 3, // パスの上限
+
   phase: 'title',
   phaseSub: null,
   cards: [],
   currentTurnIndex: 0,
   passCountMap: {'player': 0},
+  finishedPlayers: [] as FinishInfo[],
 
   // パス
-  lastPassPlayer: null as string | null, // 例: 'player' or 'npc1' etc.
-  setLastPassPlayer: (who: string | null) => set({lastPassPlayer: who}),
+  lastPassPlayer: {},
+  setLastPassPlayer: (player?: CardLocation, type?: 'win' | 'pass' | 'giveUp') => {
+    set({lastPassPlayer: {player, type, timestamp: Date.now()}});
+  },
   resetPassCounts: () => {
     set({passCountMap: {'player': 0}});
   },
 
   // ゲームの開始処理
   startGame: () => { // mode: 'auto' | 'instant' | `demo${number}`
-    const {npcCount, passCountMap} = get();
     const deck = createDeck().sort(() => Math.random() - 0.5);
-
-    for (let i = 1; i <= npcCount; i++) {
-      passCountMap[`npc${i}`] = 0;
-    }
     // 基本状態初期化
     set({
       cards: deck,
       phase: 'title',
       currentTurnIndex: 0,
-      passCountMap: passCountMap,
+      passCountMap: {},
+      lastPassPlayer: {},
+      finishedPlayers: []
     });
   },
 
@@ -144,14 +161,14 @@ export const useGameStore = create<{
   },
 
   // 順番に1枚ずつ手札を場に出す（戦略に応じて）
-  playNextToField: (isDemo) => {
+  playNextToField: () => {
     const state = get();
     const totalPlayers = 1 + state.npcCount;
     const currentIndex = state.currentTurnIndex % totalPlayers;
     const currentLocation = currentIndex === 0 ? 'player' : (`npc${currentIndex - 1}` as const);
-    if (!isDemo && currentIndex === 0) {
-      return;
-    }
+    // if (!isDemo && currentIndex === 0) {
+    //   return;
+    // }
     const strategy = (() => {
       switch (currentLocation) {
         case 'player':
@@ -168,45 +185,107 @@ export const useGameStore = create<{
     })();
 
     const myCards: Card[] = state.cards.filter(c => c.location === currentLocation);
-    if (myCards.length === 0) return; // すでにあがったプレイヤー
+    if (myCards.length === 0) {
+      state.nextTurnLoop();
+      return;
+    } // すでにあがったプレイヤー
 
     const cardToPlay = chooseCardToPlay(state.cards, currentLocation, strategy);
 
     if (!cardToPlay) {
       // 出せない → スキップ
-      const prevCount = state.passCountMap[currentLocation] || 0;
-      if (prevCount >= 3) {
-        // TODO パス上限超えたらもう何もしない
-        // state.giveUp(currentLocation)
-        const revealed: Card[] = state.cards.map(c =>
-          c.location === currentLocation
-            ? {...c, location: 'field', isFaceUp: true}
-            : c
-        );
-        set({
-          cards: revealed,
-          passCountMap: {...state.passCountMap, [currentLocation]: prevCount + 1}
-        });
-        return;
-      }
-
-      // パス扱いでカウント加算（メッセージ表示のフラグ追加もここ）
-      set(state => ({
-        passCountMap: {...state.passCountMap, [currentLocation]: prevCount + 1}
-      }));
-
-      state.setLastPassPlayer(currentLocation);
+      state.handlePass(currentLocation);
       return;
     }
 
+    if (myCards.length === 1) {
+      // 最後の一枚を出すとき、勝利確定
+      state.finishPlayer(currentLocation, 'win');
+    }
     const updatedCards: Card[] = state.cards.map(c =>
       c.id === cardToPlay.id ? {...c, location: 'field', isFaceUp: true} : c
     );
-
     set({
       cards: updatedCards,
     });
+    state.nextTurnLoop()
   },
+
+  finishPlayer: (
+    playerId: CardLocation,
+    reason: 'giveUp' | 'win'
+  ) => {
+    const state = get();
+    const finishedPlayers = state.finishedPlayers;
+
+    // 順位計算
+    const winCount = finishedPlayers.filter(f => f.reason === 'win').length;
+    const giveUpCount = finishedPlayers.filter(f => f.reason === 'giveUp').length;
+    const totalPlayers = 1 + state.npcCount;
+
+    const rank =
+      reason === 'win'
+        ? winCount + 1
+        : totalPlayers - giveUpCount;
+
+    // 🔥 ギブアップ時：カードをすべて場に出す
+    const updatedCards: Card[] = state.cards.map(c =>
+      c.location === playerId ? { ...c, location: 'field', isFaceUp: true } : c
+    );
+
+    // 順位登録
+    const updatedFinished = [
+      ...finishedPlayers,
+      { player: playerId, rank, reason, timestamp: Date.now() },
+    ];
+
+    set({
+      finishedPlayers: updatedFinished,
+      cards: updatedCards,  // 🃏 カード更新
+    });
+
+    // ✅ 残り1人なら再帰的に finishPlayer を呼び出す
+    const remainingPlayers = get().getRemainingPlayers(); // ギブアップ・上がり済み以外
+    console.log('remainingPlayers', remainingPlayers);
+    if (remainingPlayers.length <= 1) {
+      const remainingPlayer = remainingPlayers.find(p => !updatedFinished.some(f => f.player === p));
+      if (remainingPlayer) {
+        // 🎯 再帰で最後の1人を勝利として finish
+        state.finishPlayer(remainingPlayer, 'win');
+      }
+    }
+    // ✅ ここでターン進行
+    state.nextTurnLoop();
+  },
+
+  getRemainingPlayers: () => {
+    const state = get();
+    const finished = state.finishedPlayers.map(f => f.player);
+    return [
+      'player' as CardLocation,
+      ...Array(state.npcCount).fill(0).map((_, i) => `npc${i}` as CardLocation)
+    ].filter(p => !finished.includes(p));
+  },
+
+  handlePass: (playerId: CardLocation) => {
+    const state = get();
+    const currentPassCount = state.passCountMap[playerId] ?? 0;
+
+    if (currentPassCount + 1 > state.PASS_LIMIT) {
+      state.finishPlayer(playerId, 'giveUp');
+    } else {
+      set({
+        passCountMap: {
+          ...state.passCountMap,
+          [playerId]: currentPassCount + 1,
+        },
+      });
+      state.setLastPassPlayer(playerId, 'pass');
+      // ✅ ここで nextTurnLoop を必ず回す
+      state.nextTurnLoop();
+    }
+  },
+
 
   nextTurnLoop: () => {
     const state = get();
@@ -219,7 +298,10 @@ export const useGameStore = create<{
         c => c.location === nextLocation
       );
       if (hasHand) {
-        set({currentTurnIndex: nextIndex});
+        set({
+          currentTurnIndex: nextIndex,
+          phaseSub: 'turnLoop',
+        });
         return;
       }
       nextIndex = (nextIndex + 1) % totalPlayers;
@@ -237,6 +319,34 @@ export const useGameStore = create<{
       return {...c, location: 'deck', isFaceUp: false};
     });
     set({cards: updatedCards});
+  },
+
+  // カード選択
+  playUserCard: (cardId: string) => {
+    const state = get();
+    const myCards = state.cards.filter(c => c.location === 'player');
+    const card: Card | undefined = myCards.find(c => c.id === cardId && c.isPlayable);
+    if (!card) {
+      return
+    }
+
+    // 出す処理
+    const updatedCards: Card[] = state.cards.map(c =>
+      c.id === card.id ? {...c, location: 'field', isFaceUp: true} : c
+    );
+
+    if (myCards.length <= 1) {
+      // ✅ 最後の1枚を出したので勝利
+      // メッセージ表示用
+      state.finishPlayer('player', 'win');
+      state.setLastPassPlayer('player', 'win');
+    }
+
+    set({
+      cards: updatedCards,
+    });
+    useGameStore.setState({phaseSub: 'turnLoop'}); // ✅ 再開
+    get().nextTurnLoop(); // ターン進行
   },
 
 

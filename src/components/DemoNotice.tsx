@@ -26,9 +26,9 @@ export default function DemoNotice() {
 
   return (
     <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center pointer-events-none z-50">
-      <div className="text-white text-xl text-center animate-pulse bg-black/50 px-4 py-2 rounded shadow-md">
+      <p className="text-white text-xl text-center animate-pulse bg-black/50 px-4 py-2 rounded shadow-md">
         デモ中です（キーを押すとタイトルへ戻ります）
-      </div>
+      </p>
     </div>
   );
 }

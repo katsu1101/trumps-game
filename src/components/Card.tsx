@@ -12,9 +12,10 @@ type Props = {
   className?: string;
   style?: CSSProperties;
   animate?: { rotate: number; };
+  onClick?: () => void;
 };
 
-export default function Card({card, className, style, animate}: Props) {
+export default function Card({card, className, style, animate, onClick}: Props) {
   const suitMap = {
     spade: '♠',
     heart: '♥',
@@ -30,6 +31,7 @@ export default function Card({card, className, style, animate}: Props) {
 
   return (
     <motion.div
+      onClick={card.isPlayable && onClick ? onClick : undefined}
       layout
       layoutId={card.id}
       className={clsx(

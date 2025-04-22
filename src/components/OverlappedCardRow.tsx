@@ -1,5 +1,6 @@
 'use client';
 
+import {useGameStore}                         from "@/stores/gameStore";
 import type {Card as CardType}                from '@/types/card';
 import {clsx}                                 from "clsx";
 import {AnimatePresence}                      from 'framer-motion';
@@ -14,16 +15,24 @@ type Props = {
   label?: string;
   isCompact: boolean
   isActive: boolean;
+  isPlayer: boolean;
   cardWidth?: number;
   maxWidth?: number;
   message?: string; // ✅ 追加
   passCount?: number;   // 👈 追加
   passLimit?: number;   // 👈 追加
+  onCardClick?: (cardId: string) => void;
+  onPassClick?: () => void;
 };
 
 export default function OverlappedCardRow(
-  {cards, label, isCompact = false, isActive = false, cardWidth = 60, message = "", passCount, passLimit}: Props) {
+  {
+    cards, label, isCompact = false, isActive = false, isPlayer = false,
+    cardWidth = 60, message = "", passCount, passLimit,
+    onCardClick, onPassClick
+  }: Props) {
 
+  const phaseSub = useGameStore(state => state.phaseSub);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(600); // 初期仮値
 
@@ -62,11 +71,21 @@ export default function OverlappedCardRow(
           {label}
         </div>
       )}
+      {isActive && isPlayer && phaseSub === 'waitingInput' && (
+        <div className="absolute flex mt-2 z-50 top-8 left-0 gap-2 text-xs">
+          <button
+            className="bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600"
+            onClick={() => onPassClick?.()}
+          >
+            パス
+          </button>
+        </div>
+      )}
 
       {/* コイン表示：ラベルの1行下（ラベル下部から4px下へ） */}
       {typeof passCount === 'number' && typeof passLimit === 'number' && (
         <div className="absolute z-40 top-[18px] left-0 px-1 flex gap-[1px] text-xs pointer-events-none">
-          {Array.from({ length: passLimit }).map((_, i) => (
+          {Array.from({length: passLimit}).map((_, i) => (
             <span
               key={i}
               className={clsx(
@@ -80,7 +99,8 @@ export default function OverlappedCardRow(
       )}
       {/* メッセージ表示（中央上部） */}
       {message && (
-        <div className="text-nowrap absolute z-40 left-1/2 -translate-x-1/2 text-sm text-white bg-red-500/80 px-2 py-1 rounded shadow">
+        <div
+          className="text-nowrap absolute z-40 left-1/2 -translate-x-1/2 text-sm text-white bg-red-500/80 px-2 py-1 rounded shadow">
           {message}
         </div>
       )}
@@ -106,13 +126,17 @@ export default function OverlappedCardRow(
             return <Card
               key={card.id}
               card={card}
-              className={clsx("absolute top-0", isCompact ? "scale-50" : "")}
+              className={clsx(
+                "absolute top-0", isCompact ? "scale-55" : "",
+                onCardClick && card.isPlayable && card.isFaceUp && isActive ? "cursor-pointer" : ""  // ✅ ここで判定
+              )}
               style={{
                 left: `${(containerWidth > cards.length * overlapStep) ? index * overlapStep + (containerWidth - cards.length * overlapStep) / 2 : 0}px`,
-                top: `${(card.isPlayable && card.isFaceUp ? 0 : isCompact ? -10 : 10) - offsetY}px`,  // ✅ 出せるカードは上にずらす
+                top: `${(card.isPlayable && card.isFaceUp ? 0 : 10) - offsetY - (isCompact ? 15 : 0)}px`,  // ✅ 出せるカードは上にずらす
                 zIndex: index,
               }}
               animate={{rotate: angle}}
+              onClick={() => onCardClick?.(card.id)}
             />
           })}
         </AnimatePresence>
