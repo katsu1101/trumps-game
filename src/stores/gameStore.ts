@@ -111,7 +111,7 @@ export const useGameStore = create<{
     });
 
     const cards = hands.flatMap((hand, index) => {
-      const location: CardLocation = index === 0 ? 'player' : `npc${index - 1}` as const;
+      const location: CardLocation = index === 0 ? 'player' : `npc${index}` as const;
       const isFaceUp = index === 0;
       return hand.map(card => ({...card, location, isFaceUp}));
     });
@@ -127,7 +127,7 @@ export const useGameStore = create<{
 
     const alreadyDealt = cards.length - cards.filter(c => c.location === 'deck').length;
     const currentIndex = alreadyDealt % totalPlayers;
-    const location: CardLocation = currentIndex === 0 ? 'player' : `npc${currentIndex - 1}`;
+    const location: CardLocation = currentIndex === 0 ? 'player' : `npc${currentIndex}`;
     const isFaceUp = location === 'player';
 
     const updatedCards = cards.map(c =>
@@ -165,7 +165,7 @@ export const useGameStore = create<{
     const state = get();
     const totalPlayers = 1 + state.npcCount;
     const currentIndex = state.currentTurnIndex % totalPlayers;
-    const currentLocation = currentIndex === 0 ? 'player' : (`npc${currentIndex - 1}` as const);
+    const currentLocation = currentIndex === 0 ? 'player' : (`npc${currentIndex}` as const);
     // if (!isDemo && currentIndex === 0) {
     //   return;
     // }
@@ -230,31 +230,19 @@ export const useGameStore = create<{
 
     // 🔥 ギブアップ時：カードをすべて場に出す
     const updatedCards: Card[] = state.cards.map(c =>
-      c.location === playerId ? { ...c, location: 'field', isFaceUp: true } : c
+      c.location === playerId ? {...c, location: 'field', isFaceUp: true} : c
     );
 
     // 順位登録
     const updatedFinished = [
       ...finishedPlayers,
-      { player: playerId, rank, reason, timestamp: Date.now() },
+      {player: playerId, rank, reason, timestamp: Date.now()},
     ];
 
     set({
       finishedPlayers: updatedFinished,
       cards: updatedCards,  // 🃏 カード更新
     });
-
-    // ✅ 残り1人なら再帰的に finishPlayer を呼び出す
-    const remainingPlayers = get().getRemainingPlayers(); // ギブアップ・上がり済み以外
-    console.log('remainingPlayers', remainingPlayers);
-    if (remainingPlayers.length <= 1) {
-      const remainingPlayer = remainingPlayers.find(p => !updatedFinished.some(f => f.player === p));
-      if (remainingPlayer) {
-        // 🎯 再帰で最後の1人を勝利として finish
-        state.finishPlayer(remainingPlayer, 'win');
-      }
-    }
-    // ✅ ここでターン進行
     state.nextTurnLoop();
   },
 
@@ -263,7 +251,7 @@ export const useGameStore = create<{
     const finished = state.finishedPlayers.map(f => f.player);
     return [
       'player' as CardLocation,
-      ...Array(state.npcCount).fill(0).map((_, i) => `npc${i}` as CardLocation)
+      ...Array(state.npcCount).fill(0).map((_, i) => `npc${i + 1}` as CardLocation)
     ].filter(p => !finished.includes(p));
   },
 
@@ -293,7 +281,7 @@ export const useGameStore = create<{
     let nextIndex = (state.currentTurnIndex + 1) % totalPlayers;
 
     for (let i = 0; i < totalPlayers; i++) {
-      const nextLocation = nextIndex === 0 ? 'player' : `npc${nextIndex - 1}` as const;
+      const nextLocation = nextIndex === 0 ? 'player' : `npc${nextIndex}` as const;
       const hasHand = state.cards.some(
         c => c.location === nextLocation
       );
@@ -309,7 +297,13 @@ export const useGameStore = create<{
 
     // ここまで来る＝全員あがってる → 終了フラグを立てるなど
     console.warn('全員が手札なし（あがり）');
-    set({phaseSub: 'result'});
+    const updatedCards: Card[] = state.cards.map(c => {
+      return {...c, location: 'field', isFaceUp: true};
+    })
+    set({
+      cards: updatedCards,
+      phaseSub: 'result'
+    });
   },
 
 
@@ -345,7 +339,7 @@ export const useGameStore = create<{
     set({
       cards: updatedCards,
     });
-    useGameStore.setState({phaseSub: 'turnLoop'}); // ✅ 再開
+    // useGameStore.setState({phaseSub: 'turnLoop'}); // ✅ 再開
     get().nextTurnLoop(); // ターン進行
   },
 

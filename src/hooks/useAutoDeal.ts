@@ -10,7 +10,6 @@ export const useAutoDeal = () => {
   const playNextToField = useGameStore(state => state.playNextToField);
   const playNext7ToField = useGameStore(state => state.playNext7ToField);
   const playNextToDeck = useGameStore(state => state.playNextToDeck);
-  const nextTurnLoop = useGameStore(state => state.nextTurnLoop);
   const phase = useGameStore(state => state.phase);
   const phaseSub = useGameStore(state => state.phaseSub);
   const setPhase = useGameStore(state => state.setPhase);
@@ -18,7 +17,6 @@ export const useAutoDeal = () => {
 
   useEffect(() => {
     let cancelled = false;
-
 
     const runner = async () => {
 
@@ -53,6 +51,19 @@ export const useAutoDeal = () => {
           break;
 
         case 'turnLoop':
+          // ✅ 残り1人なら再帰的に finishPlayer を呼び出す
+          const remainingPlayers = useGameStore.getState().getRemainingPlayers(); // ギブアップ・上がり済み以外
+          if (remainingPlayers.length === 0) {
+            return
+          }
+          if (remainingPlayers.length === 1) {
+            const remainingPlayer = remainingPlayers[0];
+            if (remainingPlayer) {
+              // 🎯 再帰で最後の1人を勝利として finish
+              useGameStore.getState().finishPlayer(remainingPlayer, 'win');
+              return
+            }
+          }
           await delay(500);
           useGameStore.getState().updatePlayableFlags()
           const remaining = useGameStore.getState().cards.filter(c =>
@@ -72,7 +83,6 @@ export const useAutoDeal = () => {
               useGameStore.getState().handlePass("player")
               // playNextToField(false); // プレイヤーのパス処理
               // await delay(500); // アニメーション待ち
-              // useGameStore.getState().nextTurnLoop();
               return;
             }
             // ユーザのアクション待ち
@@ -82,7 +92,6 @@ export const useAutoDeal = () => {
           playNextToField();
 
           // await delay(500); // アニメーションの時間を確保してから
-          // nextTurnLoop();
           break;
 
         case 'result':
@@ -106,5 +115,5 @@ export const useAutoDeal = () => {
     return () => {
       cancelled = true;
     };
-  }, [phaseSub, dealNextCard, sortPlayerHand, playNextToField, playNext7ToField, playNextToDeck, setPhase, phase, currentTurnIndex, startGame, nextTurnLoop]);
+  }, [phaseSub, dealNextCard, sortPlayerHand, playNextToField, playNext7ToField, playNextToDeck, setPhase, phase, currentTurnIndex, startGame]);
 };

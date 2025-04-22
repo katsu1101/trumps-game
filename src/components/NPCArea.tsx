@@ -7,7 +7,7 @@ export default function NPCArea() {
   const npcCount = useGameStore(state => state.npcCount);
 
   const npcComponents = Array.from({length: npcCount}, (_, i) => {
-    const id = `npc${i}`;
+    const id = `npc${i + 1}`;
     return <ParticipantArea key={id} playerId={id} label={`NPC ${i + 1}`}/>;
   });
 
