@@ -20,5 +20,12 @@ export default function HomePage() {
       document.body.classList.add('android');
     }
   }, []);
+
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/trumps-game/service-worker.js');
+    }
+  }, []);
+
   return <GameLayout/>;
 }

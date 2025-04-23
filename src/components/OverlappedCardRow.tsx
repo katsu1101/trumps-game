@@ -87,7 +87,7 @@ export default function OverlappedCardRow(
           {displayName}
 
           {message && isPlayer && (
-            <div className="absolute left-0 bottom-full mb-2 z-40 flex items-center gap-2">
+            <div className="absolute left-0 bottom-full mb-2 z-99 flex items-center gap-2">
               <div className="relative bg-red-500/80 text-white text-lg px-2 py-1 rounded shadow whitespace-nowrap"
                    style={{
                      backgroundColor: participant?.colors.background,
@@ -138,7 +138,7 @@ export default function OverlappedCardRow(
       )}
       {/* メッセージ表示（NPC用、エリア左下から下方向） */}
       {message && !isPlayer && (
-        <div className="absolute left-0 bottom-0 translate-y-full z-40 flex items-center gap-2">
+        <div className="absolute left-0 bottom-0 translate-y-full z-99 flex items-center gap-2">
           <div
             className="relative text-lg px-2 py-1 rounded shadow whitespace-nowrap"
             style={{
@@ -149,7 +149,7 @@ export default function OverlappedCardRow(
           >
             {message}
             {/* 吹き出し三角形の枠 */}
-            <div className="absolute left-4 bottom-full w-0 h-0"
+            <div className="absolute left-4 bottom-full w-0 h-0 z-99"
                  style={{
                    borderLeft: '10px solid transparent',
                    borderRight: '10px solid transparent',
@@ -157,7 +157,7 @@ export default function OverlappedCardRow(
                  }}
             />
             {/* 吹き出し三角形の内側 */}
-            <div className="absolute left-[18px] bottom-full w-0 h-0"
+            <div className="absolute left-[18px] bottom-full w-0 h-0 z-99"
                  style={{
                    borderLeft: '8px solid transparent',
                    borderRight: '8px solid transparent',

@@ -342,7 +342,7 @@ export const useGameStore = create<{
     set({
       cards: updatedCards,
       phaseSub: 'result',
-      nextActionTime: Date.now() + 10000
+      nextActionTime: Date.now() + 30000
     });
   },
 
