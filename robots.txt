@@ -2,4 +2,4 @@ User-Agent: *
 Allow: /
 Disallow: /private/
 
-Sitemap: https://yourusername.github.io/trumps-game/sitemap.xml
+Sitemap: https://katsu1101.github.io/trumps-game/sitemap.xml
