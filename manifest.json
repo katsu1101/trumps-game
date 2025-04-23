@@ -3,8 +3,8 @@
   "short_name": "7ならべ",
   "start_url": "/trumps-game/",
   "display": "standalone",
-  "background_color": "#1A202C",
-  "theme_color": "#4ADE80",
+  "background_color": "#FFCCCC",
+  "theme_color": "#CC3333",
   "icons": [
     {
       "src": "/trumps-game/icon-192.png",
