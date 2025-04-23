@@ -2,6 +2,7 @@
   "name": "とじょりん７ならべ",
   "short_name": "7ならべ",
   "start_url": "/trumps-game/",
+  "scope": "/trumps-game/",
   "display": "standalone",
   "background_color": "#FFCCCC",
   "theme_color": "#CC3333",
@@ -16,5 +17,20 @@
       "sizes": "512x512",
       "type": "image/png"
     }
+  ],
+  "screenshots": [
+    {
+      "src": "/trumps-game/ogp.png",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/trumps-game/screenshot-mobile.png",
+      "sizes": "640x1136",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
   ]
+
 }
