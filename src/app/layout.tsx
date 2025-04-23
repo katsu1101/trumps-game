@@ -36,11 +36,11 @@ export const metadata = {
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
-    site: "@あなたのTwitter",
+    card: "summary",
+    site: "@katsu1101",
     title: "とじょりん７ならべ",
-    description: "VTuberキャラと7ならべ対戦！",
-    images: ["https://katsu1101.github.io/trumps-game/ogp.png"],
+    description: "かわいい #とじょりん が、7ならべ対戦！",
+    images: ["https://katsu1101.github.io/trumps-game/icon-800.png"],
   },
 };
 
