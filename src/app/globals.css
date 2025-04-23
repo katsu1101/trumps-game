@@ -29,7 +29,7 @@ html, body {
     margin: 0;
     padding: 0;
     overflow: hidden; /* ← 重要：スクロールバー非表示 */
-    height: 100vh;
+    height: 100dvh;
 }
 
 .android .card-font {
