@@ -1,10 +1,11 @@
 import {Card}                   from "@/types/card";
+import {StrategyType}           from "@/types/participants";
 import {rankOrder, rankToIndex} from "@/utils/cardUtils";
 
 export const chooseCardToPlay = (
   cards: Card[],
   who: Card['location'],
-  strategy: 'first' | 'random' | 'edge' | 'center' = 'random'
+  strategy: StrategyType = {type: 'random', passChance: 0}
 ): Card | undefined => {
   const playable = cards.filter(c => c.location === who && c.isPlayable);
   if (playable.length === 0) return undefined;
@@ -13,9 +14,11 @@ export const chooseCardToPlay = (
   // TODO 手札に続きがあるものをどれくらい優先するか
   // TODO あえてパスするかを考える
   // TODO 優先度を考慮する
-  switch (strategy) {
+  if (Math.random() * 100 < strategy.passChance) {
+    return undefined
+  }
+  switch (strategy.type) {
     case 'random':
-      if (Math.random() < 0.5) return undefined; // 1/2の確率でパスしてしまう
       return playable[Math.floor(Math.random() * playable.length)];
 
     case 'edge': {

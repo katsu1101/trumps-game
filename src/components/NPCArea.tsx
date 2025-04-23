@@ -2,13 +2,14 @@
 
 import ParticipantArea from "@/components/ParticipantArea";
 import {useGameStore}  from '@/stores/gameStore';
+import {CardLocation}  from "@/types/card";
 
 export default function NPCArea() {
   const npcCount = useGameStore(state => state.npcCount);
 
   const npcComponents = Array.from({length: npcCount}, (_, i) => {
-    const id = `npc${i + 1}`;
-    return <ParticipantArea key={id} playerId={id} label={`NPC ${i + 1}`}/>;
+    const id: CardLocation = `npc${i + 1}`;
+    return <ParticipantArea key={id} playerId={id}/>;
   });
 
   const portraitLayoutClass = (() => {

@@ -1,6 +1,7 @@
 'use client';
 
 import DemoNotice     from "@/components/DemoNotice";
+import ResultScreen   from "@/components/ResultScreen";
 import TitleScreen    from "@/components/TitleScreen";
 import {useAutoDeal}  from '@/hooks/useAutoDeal';
 import {useGameStore} from "@/stores/gameStore";
@@ -34,9 +35,13 @@ function MainGame() {
 
 export default function GameLayout() {
   const phase = useGameStore(state => state.phase);
+  const phaseSub = useGameStore(state => state.phaseSub);
   useAutoDeal();
 
   if (phase === 'title') return <TitleScreen/>;
-  return <MainGame/>;
+  return <>
+    <MainGame/>
+    {phaseSub === 'result' && <ResultScreen/>} {/* ✅ オーバーレイ */}
+  </>;
 
 }

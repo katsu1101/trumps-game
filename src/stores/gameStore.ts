@@ -1,3 +1,4 @@
+import {participants}                        from "@/constants/participants";
 import {Card, CardLocation}                  from "@/types/card";
 import {chooseCardToPlay}                    from "@/utils/aiStrategy";
 import {rankOrder, rankToIndex, suitToIndex} from "@/utils/cardUtils";
@@ -20,16 +21,26 @@ type FinishInfo = {
   reason: 'pass' | 'win' | 'giveUp';
   timestamp: number; // ここを追加！
 };
+type CharacterLine = {
+  text: string;
+  timestamp: number;
+};
 export const useGameStore = create<{
   npcCount: number;
   PASS_LIMIT: number;
   phase: GamePhase;
   phaseSub: GamePhaseSub;
+  lineTimestamp: number | null;
   currentTurnIndex: number;
   cards: Card[];
+  nextActionTime: number
   lastPassPlayer: { player?: CardLocation, type?: 'win' | 'pass' | 'giveUp', timestamp?: number },
   passCountMap: Record<string, number>; // 'player', 'npc0' など
   finishedPlayers: FinishInfo[];
+
+  characterLines: Partial<Record<CardLocation, CharacterLine | null>>
+
+  setCharacterLine: (player: CardLocation, text: string) => void;
 
   // --- Phase control ---
   startGame: () => void;
@@ -43,6 +54,7 @@ export const useGameStore = create<{
   // --- Turn actions ---
   playNextToField: () => void;
   nextTurnLoop: () => void;
+  toResult: () => void;
   playNext7ToField: () => void;
   playNextToDeck: () => void;
   playUserCard: (cardId: string) => void;
@@ -50,12 +62,16 @@ export const useGameStore = create<{
     playerId: CardLocation,
     reason: 'giveUp' | 'win'
   ) => void
+  showParticipantLine: (
+    playerId: CardLocation,
+    reason: 'start' | 'playCard' | 'pass' | 'giveUp' | 'win'
+  ) => void;
   getRemainingPlayers: () => CardLocation[];
   handlePass: (playerId: CardLocation) => void;
 
   // --- Hand management ---
   sortPlayerHand: () => void;
-  updatePlayableFlags: () => void;
+  updatePlayableFlags: () => Card[];
 
   setLastPassPlayer: (player?: CardLocation, reason?: 'win' | 'pass' | 'giveUp') => void;
   resetPassCounts: () => void;
@@ -65,10 +81,23 @@ export const useGameStore = create<{
 
   phase: 'title',
   phaseSub: null,
+  lineTimestamp: null,
   cards: [],
   currentTurnIndex: 0,
+  nextActionTime: 0,
   passCountMap: {'player': 0},
   finishedPlayers: [] as FinishInfo[],
+  characterLines: {},
+
+  setCharacterLine: (playerId: CardLocation, text: string) => {
+    const state = get();
+    set({
+      characterLines: {
+        ...state.characterLines,
+        [playerId]: {text, timestamp: Date.now()},
+      }
+    });
+  },
 
   // パス
   lastPassPlayer: {},
@@ -87,9 +116,11 @@ export const useGameStore = create<{
       cards: deck,
       phase: 'title',
       currentTurnIndex: 0,
+      nextActionTime: 0,
       passCountMap: {},
       lastPassPlayer: {},
-      finishedPlayers: []
+      finishedPlayers: [],
+      characterLines: {},
     });
   },
 
@@ -166,23 +197,6 @@ export const useGameStore = create<{
     const totalPlayers = 1 + state.npcCount;
     const currentIndex = state.currentTurnIndex % totalPlayers;
     const currentLocation = currentIndex === 0 ? 'player' : (`npc${currentIndex}` as const);
-    // if (!isDemo && currentIndex === 0) {
-    //   return;
-    // }
-    const strategy = (() => {
-      switch (currentLocation) {
-        case 'player':
-          return 'edge';
-        case 'npc1':
-          return 'random';
-        case 'npc2':
-          return 'center';
-        case 'npc3':
-          return 'first';
-        default:
-          return 'first';
-      }
-    })();
 
     const myCards: Card[] = state.cards.filter(c => c.location === currentLocation);
     if (myCards.length === 0) {
@@ -190,11 +204,14 @@ export const useGameStore = create<{
       return;
     } // すでにあがったプレイヤー
 
-    const cardToPlay = chooseCardToPlay(state.cards, currentLocation, strategy);
+    const participant = participants.find(p => p.id === currentLocation);
+    const cardToPlay = chooseCardToPlay(state.cards, currentLocation, participant?.strategy);
 
     if (!cardToPlay) {
       // 出せない → スキップ
+      useGameStore.getState().showParticipantLine(currentLocation, 'pass');
       state.handlePass(currentLocation);
+
       return;
     }
 
@@ -243,9 +260,25 @@ export const useGameStore = create<{
       finishedPlayers: updatedFinished,
       cards: updatedCards,  // 🃏 カード更新
     });
+
+    state.showParticipantLine(playerId, reason);
     state.nextTurnLoop();
   },
 
+  showParticipantLine: (
+    playerId: CardLocation,
+    reason: 'win' | 'giveUp' | 'pass' | 'playCard' | 'start'
+  ) => {
+    const state = get();
+    const participant = participants.find(p => p.id === playerId);
+    const lines = participant?.lines[reason];
+
+    if (lines && lines.length > 0) {
+      const randomChoice = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
+      const text = randomChoice(lines);
+      state.setCharacterLine(playerId, text);
+    }
+  },
   getRemainingPlayers: () => {
     const state = get();
     const finished = state.finishedPlayers.map(f => f.player);
@@ -280,6 +313,7 @@ export const useGameStore = create<{
     const totalPlayers = 1 + state.npcCount;
     let nextIndex = (state.currentTurnIndex + 1) % totalPlayers;
 
+
     for (let i = 0; i < totalPlayers; i++) {
       const nextLocation = nextIndex === 0 ? 'player' : `npc${nextIndex}` as const;
       const hasHand = state.cards.some(
@@ -297,12 +331,18 @@ export const useGameStore = create<{
 
     // ここまで来る＝全員あがってる → 終了フラグを立てるなど
     console.warn('全員が手札なし（あがり）');
+    state.toResult()
+  },
+
+  toResult: () => {
+    const state = get();
     const updatedCards: Card[] = state.cards.map(c => {
       return {...c, location: 'field', isFaceUp: true};
     })
     set({
       cards: updatedCards,
-      phaseSub: 'result'
+      phaseSub: 'result',
+      nextActionTime: Date.now() + 10000
     });
   },
 
@@ -412,5 +452,6 @@ export const useGameStore = create<{
     });
 
     set({cards: updated});
+    return updated
   }
 }));

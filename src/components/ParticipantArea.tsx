@@ -1,21 +1,23 @@
 'use client';
 
 import {useGameStore}    from '@/stores/gameStore';
+import {CardLocation}    from "@/types/card";
 import {useWindowWidth}  from '@/utils/useWindowSize';
 import {useEffect}       from "react";
 import OverlappedCardRow from './OverlappedCardRow';
 
 type Props = {
-  playerId: string;
-  label: string;
+  playerId: CardLocation;
 };
 
-export default function ParticipantArea({playerId, label}: Props) {
+export default function ParticipantArea({playerId}: Props) {
   const cards = useGameStore(state => state.cards);
   const lastPassPlayer = useGameStore(state => state.lastPassPlayer);
   const passCountMap = useGameStore(state => state.passCountMap);
-  const finishedPlayers = useGameStore(state => state.finishedPlayers);
   const currentTurnIndex = useGameStore(state => state.currentTurnIndex); // ✅ 追加
+
+  const characterLine = useGameStore(state => state.characterLines[playerId]);
+  const message = characterLine?.text ?? undefined;
 
   const width = useWindowWidth();
   const isCompact = width < 640;
@@ -28,27 +30,8 @@ export default function ParticipantArea({playerId, label}: Props) {
 
   const playerCards = cards.filter(c => c.location === playerId);
   const handlePass = useGameStore(state => state.handlePass);
-  const playerResult = finishedPlayers.find(fp => fp.player === playerId);
-  const isGiveUp = playerResult?.reason === 'giveUp';
-  const isWin = playerResult?.reason === 'win';
-  const isPassed = lastPassPlayer?.player === playerId && lastPassPlayer.type === 'pass';
 
   const playUserCard = useGameStore(state => state.playUserCard);
-
-  let message: string | undefined = undefined;
-
-  if (isGiveUp || isWin) {
-    const suffix = playerResult!.rank === 1
-      ? '🥇'
-      : playerResult!.rank === 2
-        ? '🥈'
-        : playerResult!.rank === 3
-          ? '🥉'
-          : `${playerResult!.rank}位`;
-    message = isWin ? `上がり！ (${suffix})` : `ギブアップ (${suffix})`;
-  } else if (isPassed) {
-    message = 'パスしました';
-  }
 
   useEffect(() => {
     if (!lastPassPlayer) return;
@@ -61,11 +44,29 @@ export default function ParticipantArea({playerId, label}: Props) {
     return () => clearTimeout(timer);
   }, [lastPassPlayer, playerId]);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const state = useGameStore.getState();
+      const updatedLines = { ...state.characterLines };
+
+      const now = Date.now();
+      Object.entries(updatedLines).forEach(([playerId, line]) => {
+        if (line && now - line.timestamp > 2000) { // 2秒表示
+          updatedLines[playerId as CardLocation] = null;
+        }
+      });
+
+      useGameStore.setState({ characterLines: updatedLines });
+    }, 500); // 0.5秒ごとにチェック
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className={"flex-1 flex-col items-center justify-center"}>
       <OverlappedCardRow
+        playerId={playerId}
         cards={playerCards}
-        label={label}
         isCompact={isCompact}
         isActive={isActive}
         isPlayer={playerId === 'player'}

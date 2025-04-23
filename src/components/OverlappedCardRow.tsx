@@ -1,9 +1,11 @@
 'use client';
 
+import {participants}                         from "@/constants/participants";
 import {useGameStore}                         from "@/stores/gameStore";
 import type {Card as CardType}                from '@/types/card';
 import {clsx}                                 from "clsx";
 import {AnimatePresence}                      from 'framer-motion';
+import Image                                  from 'next/image';
 import {useEffect, useMemo, useRef, useState} from 'react';
 import Card                                   from './Card';
 
@@ -11,8 +13,8 @@ const maxAngle = 3; // 左右に最大15度傾ける
 const radius = 3;   // カードが上下にずれる量（ピクセル）
 
 type Props = {
+  playerId: string;
   cards: CardType[];
-  label?: string;
   isCompact: boolean
   isActive: boolean;
   isPlayer: boolean;
@@ -27,11 +29,13 @@ type Props = {
 
 export default function OverlappedCardRow(
   {
-    cards, label, isCompact = false, isActive = false, isPlayer = false,
+    playerId, cards, isCompact = false, isActive = false, isPlayer = false,
     cardWidth = 60, message = "", passCount, passLimit,
     onCardClick, onPassClick
   }: Props) {
+  const participant = participants.find(p => p.id === playerId);
 
+  const displayName = participant ? participant.name : playerId; // 👈 デフォルト fallback
   const phaseSub = useGameStore(state => state.phaseSub);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(600); // 初期仮値
@@ -66,9 +70,44 @@ export default function OverlappedCardRow(
         isActive ? "border-yellow-400 shadow-yellow-400 shadow-md" : "border-dashed border-white/30"
       )}
     >
-      {label && (
+      {/* 画像（左上に配置） */}
+      {participant?.img && (
+        <Image
+          src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/img/${participant.img}.png`}
+          alt={participant.name}
+          className="absolute bottom-0 left-0 w-10 h-10"
+          width={100}
+          height={100}
+          style={{width: 50, height: "auto", top: -10, left: -10, transform: 'translate(30%, 70%)'}}
+        />
+      )}
+
+      {displayName && (
         <div className="absolute z-50 bg-black/60 top-0 left-0 text-xs text-white px-1">
-          {label}
+          {displayName}
+
+          {message && isPlayer && (
+            <div className="absolute left-0 bottom-full mb-2 z-40 flex items-center gap-2">
+              <div className="relative bg-red-500/80 text-white text-lg px-2 py-1 rounded shadow whitespace-nowrap"
+                   style={{
+                     backgroundColor: participant?.colors.background,
+                     color: participant?.colors.text,
+                     borderColor: participant?.colors.border,
+                     borderWidth: '2px',  // 👈 枠線を足す場合
+                   }}
+              >
+                {message}
+                <div
+                  className="absolute left-4 top-full w-0 h-0"
+                  style={{
+                    borderLeft: '8px solid transparent',
+                    borderRight: '8px solid transparent',
+                    borderTop: `8px solid ${participant?.colors.background}`, // 👈 上向き
+                  }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
       {isActive && isPlayer && phaseSub === 'waitingInput' && (
@@ -97,18 +136,43 @@ export default function OverlappedCardRow(
           ))}
         </div>
       )}
-      {/* メッセージ表示（中央上部） */}
-      {message && (
-        <div
-          className="text-nowrap absolute z-40 left-1/2 -translate-x-1/2 text-sm text-white bg-red-500/80 px-2 py-1 rounded shadow">
-          {message}
+      {/* メッセージ表示（NPC用、エリア左下から下方向） */}
+      {message && !isPlayer && (
+        <div className="absolute left-0 bottom-0 translate-y-full z-40 flex items-center gap-2">
+          <div
+            className="relative text-lg px-2 py-1 rounded shadow whitespace-nowrap"
+            style={{
+              backgroundColor: participant?.colors.background,
+              color: participant?.colors.text,
+              borderColor: participant?.colors.border,
+            }}
+          >
+            {message}
+            {/* 吹き出し三角形の枠 */}
+            <div className="absolute left-4 bottom-full w-0 h-0"
+                 style={{
+                   borderLeft: '10px solid transparent',
+                   borderRight: '10px solid transparent',
+                   borderBottom: `10px solid ${participant?.colors.border}`,  // 外側の枠
+                 }}
+            />
+            {/* 吹き出し三角形の内側 */}
+            <div className="absolute left-[18px] bottom-full w-0 h-0"
+                 style={{
+                   borderLeft: '8px solid transparent',
+                   borderRight: '8px solid transparent',
+                   borderBottom: `8px solid ${participant?.colors.background}`,  // 内側の色
+                 }}
+            />
+          </div>
         </div>
       )}
 
+
       <div
-        className={clsx("relative overflow-hidden w-full", isCompact ? "h-[55px]" : "h-[85px]")}
+        className={clsx("ml-10 relative overflow-hidden w-full", isCompact ? "h-[55px]" : "h-[85px]")}
         style={{
-          width: '100%',              // NPC領域いっぱいに広げる
+          width: '95%',              // NPC領域いっぱいに広げる
           maxWidth: '100%',           // 親に収まるよう制限
         }}
         ref={containerRef}

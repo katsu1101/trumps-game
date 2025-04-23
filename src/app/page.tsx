@@ -14,5 +14,11 @@ export default function HomePage() {
     }
   }, []);
 
+  useEffect(() => {
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    if (isAndroid) {
+      document.body.classList.add('android');
+    }
+  }, []);
   return <GameLayout/>;
 }

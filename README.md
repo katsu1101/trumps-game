@@ -1,7 +1,8 @@
 # ♠️ 7乗べ Webカードゲーム（Next.js × TypeScript）
 
 このプロジェクトは、7乗べ風のトランプカードゲームをブラウザ上で楽しめるように構築した Web アプリです。  
-React フレームワークの [Next.js](https://nextjs.org/) と、軽量な状態管理ライブラリ [Zustand](https://github.com/pmndrs/zustand) を用いて実装しています。
+React フレームワークの [Next.js](https://nextjs.org/)
+と、軽量な状態管理ライブラリ [Zustand](https://github.com/pmndrs/zustand) を用いて実装しています。
 
 ---
 
@@ -60,7 +61,25 @@ src/
 ├── stores/               # Zustandによる状態管理
 ├── types/                # 型定義（Cardなど）
 ├── utils/                # マーク配置テンプレートなど
+├── public/
+    ├── favicon-32.png
+    ├── apple-touch-icon.png
+    ├── icon-192.png
+    ├── icon-400.png
+    ├── icon-512.png 
+    └── ogp.png               (GitHub Pagesなら trumps-game/ogp.png)
 ```
+
+## SNS最適化などで使用する画像の一覧
+
+|                      |        画像        |   サイズ（推奨）   |    形式    |            用途            |           備考            |
+|----------------------|:----------------:|:-----------:|:--------:|:------------------------:|:-----------------------:|
+| favicon-32.png       |      ファビコン       |  32×32 px   |   PNG    |       ブラウザタブのファビコン       |        昔からの標準サイズ        |
+| apple-touch-icon.png | Apple Touch Icon | 180×180 px  |   PNG    |      iOS ホーム画面用アイコン      |  apple-touch-icon.png   |
+| icon-192.png         |  Manifest Icon   | 192×192 px  |   PNG    | PWA用アイコン (manifest.json) |       複数サイズあると安心        |
+| icon-400.png         |      アイコン画像      |   400×400   |   PNG    |        SNSアイコンなど         |                         |
+| icon-512.png         |  Manifest Icon   | 512×512 px  |   PNG    | PWA用アイコン (manifest.json) |       複数サイズあると安心        |
+| ogp.png              |      OGP画像       | 1200×630 px | PNG/JPEG |       SNS共有時のサムネイル       | openGraph, twitter card |
 
 ---
 
@@ -78,12 +97,14 @@ Zustandでは、`useGameStore` というカスタムフックを通じてゲー�
 このストアは `stores/gameStore.ts` に定義されており、以下の2つの役割を担います：
 
 ### 1. 状態（State）
+
 - `cards`：全カード情報（場所や向きを含む）
 - `npcCount`：NPCの人数（2〜4人）
 - `turn`：現在のターンプレイヤー（今後追加）
 - `phase`：ゲームの進行段階（開始前、進行中、終了 など）
 
 ### 2. 処理（Actions）
+
 - `setNpcCount(count)`：NPC人数を更新
 - `dealCards()`：山札を作成してカードを配布
 - `playCard(cardId)`：カードを場に出す（今後実装）
@@ -91,6 +112,7 @@ Zustandでは、`useGameStore` というカスタムフックを通じてゲー�
 - `resetGame()`：初期状態にリセット
 
 ### 利用例（コンポーネント側）
+
 Reactコンポーネントでは以下のようにして状態にアクセス・操作します：
 
 ```tsx
