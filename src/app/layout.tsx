@@ -14,7 +14,8 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: "とじょりん７ならべ",
-  description: "ばけごろうやミニばけたちと対戦できる7ならべゲーム！",
+  description: "かわいい #とじょりん が、７ならべで対決！",
+  robots: "index, follow",
   icons: {
     icon: "https://katsu1101.github.io/trumps-game/favicon-32.png",
     shortcut: "https://katsu1101.github.io/trumps-game/favicon-32.png",
@@ -22,7 +23,7 @@ export const metadata = {
   },
   openGraph: {
     title: "とじょりん７ならべ",
-    description: "VTuberキャラと7ならべ！遊んでね！",
+    description: "かわいい #とじょりん が、７ならべで対決！",
     url: "https://katsu1101.github.io/trumps-game/",
     siteName: "とじょりん７ならべ",
     images: [
@@ -30,6 +31,7 @@ export const metadata = {
         url: "https://katsu1101.github.io/trumps-game/ogp.png",
         width: 1200,
         height: 630,
+        alt: "とじょりん７ならべのイメージ画像"
       },
     ],
     locale: "ja_JP",
@@ -40,8 +42,16 @@ export const metadata = {
     site: "@katsu1101",
     title: "とじょりん７ならべ",
     description: "かわいい #とじょりん が、7ならべ対戦！",
-    images: ["https://katsu1101.github.io/trumps-game/icon-800.png"],
+    images: [{
+      url: "https://katsu1101.github.io/trumps-game/icon-800.png",
+      alt: "とじょりん７ならべのアイコン画像"
+    }],
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "とじょりん７ならべ"
+  }
 };
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
@@ -54,7 +64,24 @@ export default function RootLayout({
     <html lang="ja">
     <head>
       <link rel="manifest" href={`${basePath}/manifest.json`}/>
-      <meta name="theme-color" content="#4ADE80"/>
+      <link rel="canonical" href="https://katsu1101.github.io/trumps-game/"/>
+      <meta name="theme-color" content="#CC3333"/>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "url": "https://katsu1101.github.io/trumps-game/",
+            "name": "とじょりん７ならべ",
+            "description": "かわいい #とじょりん が、７ならべで対決！",
+            "publisher": {
+              "@type": "Person",
+              "name": "かつき"
+            }
+          }),
+        }}
+      ></script>
     </head>
     <body
       className={`${geistSans.variable} ${geistMono.variable} antialiased`}
