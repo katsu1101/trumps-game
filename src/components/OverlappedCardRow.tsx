@@ -111,7 +111,7 @@ export default function OverlappedCardRow(
         </div>
       )}
       {isActive && isPlayer && phaseSub === 'waitingInput' && (
-        <div className="absolute flex mt-2 z-50 top-8 left-0 gap-2 text-xs">
+        <div className="absolute flex mt-2 z-50 bottom-0 left-0 gap-2 text-xs">
           <button
             className="bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600"
             onClick={() => onPassClick?.()}
