@@ -4,8 +4,8 @@
   "start_url": "/trumps-game/",
   "scope": "/trumps-game/",
   "display": "standalone",
-  "background_color": "#FFCCCC",
-  "theme_color": "#CC3333",
+  "background_color": "#CC3333",
+  "theme_color": "#000000",
   "icons": [
     {
       "src": "/trumps-game/icon-192.png",
